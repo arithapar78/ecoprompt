@@ -102,37 +102,13 @@ originalPromptEl.addEventListener('input', () => {
   originalTokensEl.textContent = tokens;
 });
 
-// ── Optimization level selector ────────────────────────────────────────────────
-// Three pill buttons: Light / Balanced / Aggressive
-// Balanced is the default (pre-selected in HTML with class "active").
-
-let selectedLevel = 'balanced';
-
-document.querySelectorAll('.level-pill').forEach(pill => {
-  pill.addEventListener('click', () => {
-    // Deactivate all pills
-    document.querySelectorAll('.level-pill').forEach(p => {
-      p.classList.remove('active');
-      p.setAttribute('aria-pressed', 'false');
-    });
-    // Activate selected
-    pill.classList.add('active');
-    pill.setAttribute('aria-pressed', 'true');
-    selectedLevel = pill.dataset.level;
-  });
-});
-
 // ── Optimize button ────────────────────────────────────────────────────────────
 
 document.getElementById('optimize-btn').addEventListener('click', () => {
   const original = originalPromptEl.value.trim();
   if (!original) return;
 
-  // Use the new central optimizer (prompt-optimizer.js)
-  const { optimized, stats } = window.EcoPromptOptimizer.getOptimizationStats(
-    original,
-    { level: selectedLevel }
-  );
+  const { optimized, stats } = window.EcoPromptOptimizer.getOptimizationStats(original);
 
   // Display optimized text
   document.getElementById('optimized-prompt').textContent = optimized;

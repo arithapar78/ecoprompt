@@ -46,9 +46,9 @@ function _legacyCleanup(text) {
 
 // ── Public entry point ─────────────────────────────────────────────────────────
 
-function optimizePrompt(text, options = {}) {
+function optimizePrompt(text) {
   if (typeof window !== 'undefined' && window.EcoPromptOptimizer) {
-    return window.EcoPromptOptimizer.optimizePrompt(text, options);
+    return window.EcoPromptOptimizer.optimizePrompt(text);
   }
 
   // Fallback: balanced-equivalent, no protection pass

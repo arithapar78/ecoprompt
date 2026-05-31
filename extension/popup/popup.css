@@ -268,48 +268,6 @@ textarea:focus {
   color: #2e7d32;
 }
 
-/* ── Optimization level selector ─────────────── */
-.level-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.level-label {
-  font-size: 11px;
-  color: #888;
-  flex-shrink: 0;
-}
-
-.level-pills {
-  display: flex;
-  gap: 4px;
-}
-
-.level-pill {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 9px;
-  border: 1.5px solid #ccc;
-  border-radius: 12px;
-  background: #fff;
-  color: #555;
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-
-.level-pill:hover {
-  border-color: #888;
-  color: #1a1a1a;
-}
-
-.level-pill.active {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
-  color: #fff;
-}
-
 /* ── Environmental savings section ────────────── */
 .savings-section {
   margin-top: 10px;
