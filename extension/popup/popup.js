@@ -1,6 +1,23 @@
 // popup/popup.js
 // Role: handle view switching, live energy display, and the prompt optimizer UI.
 
+// ── Width resizing ─────────────────────────────────────────────────────────────
+
+const WIDTHS = [300, 380, 480, 580];
+let widthIdx = 1; // default: 380px
+
+function applyWidth() {
+  document.body.style.width = WIDTHS[widthIdx] + 'px';
+}
+
+function onGrow()   { if (widthIdx < WIDTHS.length - 1) { widthIdx++; applyWidth(); } }
+function onShrink() { if (widthIdx > 0)                 { widthIdx--; applyWidth(); } }
+
+document.getElementById('grow-btn').addEventListener('click',    onGrow);
+document.getElementById('shrink-btn').addEventListener('click',  onShrink);
+document.getElementById('grow-btn-2').addEventListener('click',  onGrow);
+document.getElementById('shrink-btn-2').addEventListener('click',onShrink);
+
 // ── View switching ─────────────────────────────────────────────────────────────
 
 const viewDashboard = document.getElementById('view-dashboard');

@@ -7,11 +7,13 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  width: 300px;
+  width: 380px;
+  min-height: 520px;
   margin: 0;
   padding: 0;
   background: #f9f9f9;
   color: #1a1a1a;
+  transition: width 0.15s ease;
 }
 
 /* ── Header ───────────────────────────────────── */
@@ -312,6 +314,19 @@ textarea:focus {
   color: #666;
   padding: 6px 14px 10px;
   text-align: center;
+}
+
+/* ── Resize buttons ───────────────────────────── */
+.resize-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.resize-btn {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 1px 6px;
+  line-height: 1.2;
 }
 
 /* ── Spacing at bottom of popup ───────────────── */

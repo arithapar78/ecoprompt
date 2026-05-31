@@ -18,6 +18,10 @@
         <img src="../assets/icon-32.png" class="header-logo" alt="EcoPrompt" />
         EcoPrompt
       </span>
+      <div class="resize-btns">
+        <button class="icon-btn resize-btn" id="shrink-btn" title="Make narrower">−</button>
+        <button class="icon-btn resize-btn" id="grow-btn"   title="Make wider">+</button>
+      </div>
       <button id="open-history-btn" class="icon-btn" title="Energy History">📈</button>
     </header>
 
@@ -83,12 +87,16 @@
     <header class="header">
       <button id="back-btn" class="icon-btn" title="Back to Dashboard">←</button>
       <span class="header-title">Prompt Optimizer</span>
+      <div class="resize-btns">
+        <button class="icon-btn resize-btn" id="shrink-btn-2" title="Make narrower">−</button>
+        <button class="icon-btn resize-btn" id="grow-btn-2"   title="Make wider">+</button>
+      </div>
     </header>
 
     <!-- Input card -->
     <section class="card">
       <div class="card-label">Your Prompt</div>
-      <textarea id="original-prompt" placeholder="Enter your prompt..." rows="4"></textarea>
+      <textarea id="original-prompt" placeholder="Enter your prompt..." rows="7"></textarea>
       <div class="token-row">
         <span class="token-label">Tokens:</span>
         <span id="original-tokens" class="token-count">0</span>

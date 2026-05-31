@@ -697,6 +697,18 @@ const FILLERS = [
   'educational', 'engaging', 'comprehensive', 'thorough',
   'roughly', 'approximately', 'nearly', 'almost', 'relatively',
   'typically', 'generally', 'commonly', 'usually', 'often', 'sometimes',
+
+  // Articles — safe to strip anywhere
+  'the', 'a', 'an',
+
+  // Possessive / subject pronouns that appear as pure preamble padding
+  // "your" as in "your thoughts", "your help", "your assistance"
+  'your', 'yours',
+  // "my" as standalone possessive padding ("my question", "my request")
+  'my',
+
+  // Conjunctions safe to strip at sentence boundaries
+  'and', 'or',
 ];
 
 // ── Preamble wipe ──────────────────────────────────────────────────────────────
@@ -843,9 +855,8 @@ function calculateSavings(original, optimized) {
   const removed  = Math.max(0, origW - optW);
   const pctOff   = origW > 0 ? Math.round((removed / origW) * 100) : 0;
 
-  const tok      = t => Math.ceil(t.length / 4);
-  const origTok  = tok(original);
-  const optTok   = tok(optimized);
+  const origTok  = countTokens(original);
+  const optTok   = countTokens(optimized);
   const tokSaved = Math.max(0, origTok - optTok);
 
   const energyWh = tokSaved * WH_PER_TOKEN;
