@@ -14,141 +14,94 @@
 //  - Case-insensitive matching
 //  - Listed by category for easy editing; longest phrases first within each group
 
+// FILLER_WORDS is used only by the legacy fallback in prompt-generator.js.
+// The main optimizer (prompt-optimizer.js) uses FILLERS_LIGHT/BALANCED/AGGRESSIVE instead.
+// This list mirrors FILLERS_LIGHT + FILLERS_BALANCED — balanced is the fallback default.
 const FILLER_WORDS = [
 
-  // ── Greetings / salutations ──────────────────────────────────────────────────
-  'hello there', 'hi there', 'hey there',
-  'dear assistant',
+  // ── Greetings ─────────────────────────────────────────────────────────────────
+  'hello there', 'hi there', 'hey there', 'dear assistant',
   'good morning', 'good afternoon', 'good evening', 'good day',
-  'hi', 'hey', 'hello', 'howdy', 'greetings',
-  'dear sir', 'dear madam', 'dear',
+  'hello', 'howdy', 'greetings', 'hey', 'hi',
 
-  // ── Sign-offs / closings ─────────────────────────────────────────────────────
+  // ── Sign-offs ─────────────────────────────────────────────────────────────────
   'thank you so much', 'thanks so much', 'thank you very much',
-  'much appreciated', 'many thanks', 'thanks a lot', 'thanks a bunch',
-  'thanks again', 'thank you again',
-  'thank you', 'thanks',
-  'bye', 'goodbye', 'cheers',
-  'sincerely', 'regards', 'best regards', 'kind regards', 'warm regards',
+  'thanks a lot', 'thanks a bunch', 'many thanks',
+  'thank you again', 'thanks again',
+  'best regards', 'kind regards', 'warm regards',
   'yours truly', 'with appreciation',
-  'i appreciate it', 'i would appreciate it', 'i would really appreciate it',
+  'thank you', 'thanks',
+  'much appreciated', 'i appreciate it', 'i really appreciate it',
+  'i would appreciate it', 'i would really appreciate it',
+  "i'd appreciate it", 'appreciate your help', 'appreciate the help',
+  'sincerely', 'regards', 'cheers', 'goodbye',
 
-  // ── Politeness / softeners ───────────────────────────────────────────────────
-  'sorry to bother you', 'sorry for the trouble', 'sorry for the inconvenience',
-  'apologies', 'my apologies', 'excuse me', 'pardon me',
-  'if it is not too much trouble', 'if it\'s not too much trouble',
-  'at your earliest convenience', 'at your convenience',
-  'whenever you have time', 'when you get a chance', 'when you have time',
-  'whenever you get a chance',
-  'if you wouldn\'t mind', 'if you don\'t mind',
-  'if that is okay', 'if that\'s okay',
-  'if it\'s possible', 'if possible',
-  'feel free to', 'don\'t hesitate to',
-  'if you could', 'if you can',
-  'hope you are well', 'hope you\'re doing well', 'hope all is well',
-  'i hope you can',
+  // ── Basic softeners ───────────────────────────────────────────────────────────
   'please kindly', 'could you please', 'could you kindly',
-  'would you please', 'would you kindly',
-  'can you please', 'may you please',
-  'please', 'kindly',
+  'would you please', 'would you kindly', 'can you please',
+  'please', 'pls', 'plz', 'kindly',
 
-  // ── Weak openers / meta-requests ─────────────────────────────────────────────
+  // ── Politeness hedges ─────────────────────────────────────────────────────────
+  'sorry to bother you', 'sorry for bothering you',
+  'sorry for the trouble', 'sorry for the inconvenience',
+  'if it is not too much trouble', "if it's not too much trouble",
+  'at your earliest convenience', 'at your convenience',
+  'whenever you have time', 'whenever you get a chance',
+  'when you get a chance', 'when you have time', 'no rush',
+  "if you wouldn't mind", "if you don't mind", 'if you do not mind',
+  'if that is okay', "if that's okay", 'if it is okay', "if it's okay",
+  "if it's possible", 'if possible',
+  'if you could', 'if you can', 'if you would',
+  'hope you are well', "hope you're well",
+  'hope you are doing well', "hope you're doing well", 'hope all is well',
+  'sorry', 'apologies', 'excuse me', 'pardon me',
+
+  // ── Soft openers ──────────────────────────────────────────────────────────────
   'i was really hoping you could', 'i was hoping you could',
-  'i am asking you to', 'i wanted to ask', 'i just wanted to ask',
-  'i\'m reaching out because', 'i am reaching out because',
-  'i need your help with', 'i would like your help with',
-  'i am writing to', 'i am reaching out to',
-  'i wanted to know if', 'i want to know if',
-  'i would like to know if', 'i\'d like to know if',
-  'i\'m trying to figure out', 'i am trying to figure out',
-  'i was trying to figure out',
-  'i\'m looking to', 'i am looking to',
-  'i\'m hoping to', 'i am hoping to', 'i was hoping to',
-  'i was wondering if', 'i am wondering if', 'i\'m wondering if',
-  'i wanted to', 'i\'d like to', 'i would like to', 'i would love to',
-  'i need to know', 'i just need to know',
-  'i\'m curious about', 'i am curious about',
-  'i have a question about', 'my question is', 'what i want to ask is',
-  'what i\'m trying to ask is', 'the thing is', 'basically what i need is',
-
-  // ── Filler / meaningless openers ────────────────────────────────────────────
-  'so basically', 'so i guess', 'so i was thinking',
+  'i am really hoping you could', 'i am hoping you could',
+  'i just wanted', 'i wanted',
+  "i'd like", 'i would like', "i'd love", 'i would love',
+  'i just need', 'i need',
+  'so basically', 'so i guess', 'so i think', 'so i was thinking',
+  'i was thinking', "i'm thinking", 'i am thinking',
   'i think maybe', 'i sort of feel like', 'i kind of feel like',
-  'it seems like', 'it looks like', 'it appears that',
+  'i have a quick question', 'i have a question',
+  'quick question', 'small question',
+
+  // ── Hedging phrases ───────────────────────────────────────────────────────────
+  'it would seem', 'it seems that', 'it seems like',
+  'it looks like', 'it appears that', 'it appears like',
+  'more or less', 'to some extent', 'in some ways', 'in a sense', 'in a way',
+  'to a certain extent', 'to a degree', 'for the most part',
+  'at times', 'roughly speaking', 'generally speaking', 'broadly speaking',
+  "i'd say", 'i would say', 'i would suggest', 'i would argue', 'i reckon',
+  'as you may know', 'as you probably know', 'as you know', 'as we know',
   'i may be wrong but', 'i could be wrong but',
-  'correct me if i\'m wrong',
+  "correct me if i'm wrong",
   'not sure if this makes sense but',
   'this might be dumb but', 'this may be a silly question but',
+  'basically what i need is',
 
-  // ── Hedging / uncertainty markers (balanced) ─────────────────────────────────
-  // NOTE: aggressive level adds more via FILLER_AGGRESSIVE_EXTRA in prompt-optimizer.js
-  'it would seem', 'it seems that',
-  'i would say', 'i\'d say',
-  'more or less', 'to some extent', 'in some ways', 'in a sense', 'in a way',
-  'to a certain extent', 'to a degree',
-  'roughly speaking', 'generally speaking', 'broadly speaking',
-  'i reckon', 'i would argue', 'i would suggest',
-  'as you may know', 'as you probably know', 'as you know', 'as we know',
-  'it seems', 'it appears',
-  'i feel', 'i suppose', 'i guess', 'i mean',
-  'you know', 'you see',
-  'i think', 'i believe',
-  'i would say',
-
-  // ── Filler intensifiers ──────────────────────────────────────────────────────
-  'a little bit', 'just a little', 'just a bit', 'a tad',
-  'ever so slightly', 'marginally', 'nominally',
-  'kind of', 'sort of', 'kinda', 'sorta',
-  'in a way', 'in some ways', 'to some extent',
-  'just', 'simply', 'basically', 'essentially', 'fundamentally',
-  'actually', 'literally', 'honestly', 'truly', 'genuinely',
-  'really', 'very', 'quite', 'pretty', 'fairly', 'rather',
-  'somewhat', 'slightly', 'a little', 'a bit',
-  'of course', 'obviously', 'clearly', 'certainly', 'definitely',
-  'absolutely', 'totally', 'completely', 'utterly', 'entirely',
-
-  // ── Weak qualifiers ──────────────────────────────────────────────────────────
-  'arguably', 'presumably', 'supposedly', 'allegedly', 'reportedly', 'apparently',
-
-  // ── Throat-clearing / meta-commentary ───────────────────────────────────────
-  'it goes without saying', 'suffice it to say', 'needless to say',
-  'at the end of the day', 'when all is said and done', 'all things considered',
-  'on that note', 'with that said', 'that being said', 'having said that', 'that said',
-  'all in all', 'in any case', 'in any event', 'in the end', 'at the end',
-  'first of all', 'first and foremost', 'last but not least',
+  // ── Throat-clearing ───────────────────────────────────────────────────────────
+  'it goes without saying', 'suffice it to say',
+  'first and foremost', 'first of all', 'last but not least',
   'to begin with', 'to start with', 'to start off',
-  'by the way', 'incidentally',
-  'in other words', 'to put it another way', 'to put it simply', 'to put it differently',
-  'long story short', 'to make a long story short',
-  'the bottom line is', 'the thing is', 'here\'s the thing', 'the point is',
-  'the main point is',
-  'so', 'well', 'okay', 'ok', 'alright', 'right',
+  'by the way', 'the bottom line is', "here's the thing", 'the main point is',
+  'the point is', 'the key thing is', 'the important thing is',
 
-  // ── Redundant openers / request preambles ────────────────────────────────────
-  'do you think you could', 'will you', 'can you', 'would you', 'could you',
-  'i need you to', 'i want you to',
-  'can you please', 'could you please', 'would you please',
-  'could you kindly', 'would you kindly',
-
-  // ── Padding phrases / fact-wrappers ──────────────────────────────────────────
-  'in order to', 'for the purpose of', 'with the aim of',
-  'with the goal of', 'with the intention of', 'in an effort to', 'in a bid to',
-  'due to the fact that', 'owing to the fact that',
-  'in light of the fact that', 'given the fact that',
-  'as a matter of fact', 'in point of fact',
-  'it is worth noting that', 'it is important to note that',
-  'it should be noted that', 'it is worth mentioning that',
+  // ── Single-word intensifiers (safe) ───────────────────────────────────────────
+  'just', 'really', 'very',
+  'simply', 'basically', 'essentially', 'fundamentally',
+  'actually', 'literally', 'honestly', 'frankly', 'truly', 'genuinely',
+  'quite', 'fairly', 'rather', 'somewhat', 'slightly',
+  'obviously', 'clearly', 'certainly', 'definitely',
+  'absolutely', 'totally', 'completely', 'utterly', 'entirely', 'fully',
   'ultimately',
-
-  // ── Filler connectors ────────────────────────────────────────────────────────
-  'and so', 'and also', 'and then',
-  'as well as', 'as well', 'too', 'also',
+  // Weak qualifiers
+  'arguably', 'presumably', 'supposedly', 'allegedly', 'reportedly', 'apparently',
+  // Connectors
   'additionally', 'furthermore', 'moreover',
-  'in addition', 'in addition to that', 'on top of that',
-  'not only that', 'along with that',
-
-  // ── Empty courtesy phrases ────────────────────────────────────────────────────
-  'no problem', 'no worries', 'sure thing', 'go ahead', 'feel free',
+  'incidentally',
 ];
 
 // ── Structural compression rules ──────────────────────────────────────────────
