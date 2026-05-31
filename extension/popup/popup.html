@@ -27,7 +27,6 @@
       <div class="activity-indicator">
         <span class="activity-dot"></span>
         <span class="activity-text">Active</span>
-        <!-- TODO: replace with real activity detection -->
       </div>
     </section>
 
@@ -86,6 +85,7 @@
       <span class="header-title">Prompt Optimizer</span>
     </header>
 
+    <!-- Input card -->
     <section class="card">
       <div class="card-label">Your Prompt</div>
       <textarea id="original-prompt" placeholder="Enter your prompt..." rows="4"></textarea>
@@ -93,24 +93,63 @@
         <span class="token-label">Tokens:</span>
         <span id="original-tokens" class="token-count">0</span>
       </div>
+
+      <!-- Optimization level selector (Caveman-inspired levels) -->
+      <div class="level-row">
+        <span class="level-label">Level</span>
+        <div class="level-pills" role="group" aria-label="Optimization level">
+          <button class="level-pill" data-level="light"      aria-pressed="false">Light</button>
+          <button class="level-pill active" data-level="balanced"  aria-pressed="true">Balanced</button>
+          <button class="level-pill" data-level="aggressive" aria-pressed="false">Aggressive</button>
+        </div>
+      </div>
+
       <button id="optimize-btn" class="primary-btn">Optimize</button>
     </section>
 
+    <!-- Results card (hidden until first optimize) -->
     <section class="card hidden" id="result-card">
       <div class="card-label">Optimized Prompt</div>
       <div id="optimized-prompt" class="output-text"></div>
+
+      <!-- Token stats -->
       <div class="token-stats">
         <div class="token-stat-row">
-          <span class="token-stat-label">Original</span>
+          <span class="token-stat-label">Original tokens</span>
           <span id="stat-original" class="token-stat-value">—</span>
         </div>
         <div class="token-stat-row">
-          <span class="token-stat-label">Optimized</span>
+          <span class="token-stat-label">Optimized tokens</span>
           <span id="stat-optimized" class="token-stat-value">—</span>
         </div>
         <div class="token-stat-row token-stat-row--saved">
-          <span class="token-stat-label">Saved</span>
+          <span class="token-stat-label">Tokens saved</span>
           <span id="stat-saved" class="token-stat-value token-saved">—</span>
+        </div>
+        <div class="token-stat-row">
+          <span class="token-stat-label">Words removed</span>
+          <span id="stat-words-removed" class="token-stat-value">—</span>
+        </div>
+        <div class="token-stat-row token-stat-row--saved">
+          <span class="token-stat-label">Reduction</span>
+          <span id="stat-reduction" class="token-stat-value token-saved">—</span>
+        </div>
+      </div>
+
+      <!-- Environmental savings -->
+      <div class="savings-section">
+        <div class="savings-label">Estimated savings per query</div>
+        <div class="savings-row">
+          <span class="savings-icon">⚡</span>
+          <span class="savings-text"><span id="stat-energy" class="savings-value">—</span> Wh energy</span>
+        </div>
+        <div class="savings-row">
+          <span class="savings-icon">💧</span>
+          <span class="savings-text"><span id="stat-water" class="savings-value">—</span> mL water</span>
+        </div>
+        <div class="savings-row">
+          <span class="savings-icon">🌿</span>
+          <span class="savings-text"><span id="stat-co2" class="savings-value">—</span> mg CO₂</span>
         </div>
       </div>
     </section>
@@ -120,8 +159,10 @@
   </div><!-- /view-optimizer -->
 
 
+  <!-- Script load order matters: rules-db → token-counter → optimizer → generator → popup -->
   <script src="../lib/prompt-rules-db.js"></script>
   <script src="../lib/token-counter.js"></script>
+  <script src="../lib/prompt-optimizer.js"></script>
   <script src="../lib/prompt-generator.js"></script>
   <script src="../lib/energy-estimator.js"></script>
   <script src="../lib/api.js"></script>

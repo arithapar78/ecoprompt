@@ -1,7 +1,7 @@
 // popup/popup.js
-// Role: handle view switching and display live energy estimate from active tab.
+// Role: handle view switching, live energy display, and the prompt optimizer UI.
 
-// ── View switching ─────────────────────────────────────────────────────────
+// ── View switching ─────────────────────────────────────────────────────────────
 
 const viewDashboard = document.getElementById('view-dashboard');
 const viewOptimizer = document.getElementById('view-optimizer');
@@ -20,32 +20,26 @@ document.getElementById('back-btn').addEventListener('click', () => {
   viewDashboard.classList.remove('hidden');
 });
 
-// ── Energy dashboard ───────────────────────────────────────────────────────
+// ── Energy dashboard ───────────────────────────────────────────────────────────
 
 async function refreshDashboard() {
-  // Get the active tab in the current window.
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
 
-  // Ask the service worker for the latest metrics + AI info for this tab.
   const response = await chrome.runtime.sendMessage({
     type: 'GET_METRICS',
     tabId: tab.id,
   });
 
-  const metrics    = response?.metrics;
-  const ai         = response?.ai ?? null;
-  const swTotal    = response?.totalWatts ?? null;
+  const metrics = response?.metrics;
+  const ai      = response?.ai ?? null;
+  const swTotal = response?.totalWatts ?? null;
 
-  // If no metrics yet (page hasn't sent any), show a loading state.
   if (!metrics) {
     setEnergyDisplay(null, null);
     return;
   }
 
-  // Prefer the service worker's pre-computed total (frontendWatts + aiWatts).
-  // Fall back to local estimation only if the SW hasn't cached a total yet
-  // (e.g. the very first tick before resolveAIWatts has resolved).
   let totalWatts;
   if (swTotal !== null) {
     totalWatts = swTotal;
@@ -55,7 +49,7 @@ async function refreshDashboard() {
     totalWatts = frontendWatts + aiWatts;
   }
 
-  console.log('[PowerTracker popup] totalWatts:', totalWatts.toFixed(4), '| aiWatts:', (ai?.aiWatts ?? 0).toFixed(4));
+  console.log('[EcoPrompt popup] totalWatts:', totalWatts.toFixed(4), '| aiWatts:', (ai?.aiWatts ?? 0).toFixed(4));
 
   setEnergyDisplay(totalWatts, ai);
 }
@@ -74,7 +68,6 @@ function setEnergyDisplay(watts, ai) {
 
   energyEl.innerHTML = `${watts.toFixed(2)} <span class="energy-unit">W</span>`;
 
-  // Show AI model badge if an AI site was detected
   if (ai?.modelName) {
     aiModelEl.textContent = ai.modelName;
     aiWattsEl.textContent = `+${(ai.aiWatts ?? 0).toFixed(3)} W backend`;
@@ -83,7 +76,6 @@ function setEnergyDisplay(watts, ai) {
     aiInfoEl.classList.add('hidden');
   }
 
-  // Update comparison values using total watts.
   document.querySelector('.bulbs-value').textContent =
     (watts / 6).toFixed(3);
 
@@ -96,11 +88,10 @@ function setEnergyDisplay(watts, ai) {
     ((watts / 1000) * 386).toFixed(3);
 }
 
-// Refresh immediately when popup opens, then every 5 s.
 refreshDashboard();
 setInterval(refreshDashboard, 5000);
 
-// ── Prompt optimizer ───────────────────────────────────────────────────────
+// ── Prompt optimizer ───────────────────────────────────────────────────────────
 
 // Live token counter while the user types
 const originalPromptEl = document.getElementById('original-prompt');
@@ -111,17 +102,67 @@ originalPromptEl.addEventListener('input', () => {
   originalTokensEl.textContent = tokens;
 });
 
+// ── Optimization level selector ────────────────────────────────────────────────
+// Three pill buttons: Light / Balanced / Aggressive
+// Balanced is the default (pre-selected in HTML with class "active").
+
+let selectedLevel = 'balanced';
+
+document.querySelectorAll('.level-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    // Deactivate all pills
+    document.querySelectorAll('.level-pill').forEach(p => {
+      p.classList.remove('active');
+      p.setAttribute('aria-pressed', 'false');
+    });
+    // Activate selected
+    pill.classList.add('active');
+    pill.setAttribute('aria-pressed', 'true');
+    selectedLevel = pill.dataset.level;
+  });
+});
+
+// ── Optimize button ────────────────────────────────────────────────────────────
+
 document.getElementById('optimize-btn').addEventListener('click', () => {
   const original = originalPromptEl.value.trim();
   if (!original) return;
 
-  const optimized = optimizePrompt(original);
-  const stats = getTokenStats(original, optimized);
+  // Use the new central optimizer (prompt-optimizer.js)
+  const { optimized, stats } = window.EcoPromptOptimizer.getOptimizationStats(
+    original,
+    { level: selectedLevel }
+  );
 
+  // Display optimized text
   document.getElementById('optimized-prompt').textContent = optimized;
-  document.getElementById('stat-original').textContent = stats.original;
-  document.getElementById('stat-optimized').textContent = stats.optimized;
-  document.getElementById('stat-saved').textContent = stats.saved;
+
+  // Token stats (kept for backwards compatibility with existing IDs)
+  document.getElementById('stat-original').textContent  = stats.originalTokens;
+  document.getElementById('stat-optimized').textContent = stats.optimizedTokens;
+  document.getElementById('stat-saved').textContent     = stats.tokensSaved;
+
+  // New word / reduction stats
+  document.getElementById('stat-words-removed').textContent =
+    `${stats.wordsRemoved} words`;
+  document.getElementById('stat-reduction').textContent =
+    `${stats.percentReduction}%`;
+
+  // Environmental savings
+  // Energy: show in µWh if < 1 Wh, else Wh
+  const energyWh = stats.energySavedWh;
+  document.getElementById('stat-energy').textContent =
+    energyWh < 0.001
+      ? (energyWh * 1000).toFixed(4)   // µWh
+      : energyWh.toFixed(6);           // Wh
+
+  // Water: convert liters → mL for readability at these small scales
+  const waterMl = stats.waterSavedLiters * 1000;
+  document.getElementById('stat-water').textContent = waterMl.toFixed(4);
+
+  // CO2: convert grams → mg for readability
+  const co2Mg = stats.co2SavedGrams * 1000;
+  document.getElementById('stat-co2').textContent = co2Mg.toFixed(3);
 
   document.getElementById('result-card').classList.remove('hidden');
 });
