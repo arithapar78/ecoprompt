@@ -1,4 +1,4 @@
-# Power Tracker v3
+# EcoPrompt
 
 Minimal Chrome extension MVP for prompt optimization and usage tracking.
 

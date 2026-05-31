@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Power Tracker v3",
+  "name": "EcoPrompt",
   "version": "0.1.0",
   "description": "Minimal prompt optimizer and usage tracker.",
 
@@ -30,7 +30,7 @@
 
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Power Tracker",
+    "default_title": "EcoPrompt",
     "default_icon": {
       "16":  "assets/icon-16.png",
       "32":  "assets/icon-32.png",

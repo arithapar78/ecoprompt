@@ -1,8 +1,8 @@
-# Power Tracker v3 MVP Requirements
+# EcoPrompt MVP Requirements
 
 ## Goal
 
-Rebuild Power Tracker from scratch with only the minimum required features for a working MVP.
+Rebuild EcoPrompt from scratch with only the minimum required features for a working MVP.
 
 ## Must Have
 

@@ -1,12 +1,12 @@
 ---
 name: power-tracker-v3-builder
-description: Build and maintain the Power Tracker v3 Chrome extension MVP. Use this skill whenever working on the Power Tracker project, including setting up the extension structure, building the popup UI, implementing the prompt generator, adding frontend event tracking, and connecting to the backend database. Always prioritize minimal, working implementations and avoid adding advanced features unless explicitly requested.
+description: Build and maintain the EcoPrompt v3 Chrome extension MVP. Use this skill whenever working on the EcoPrompt project, including setting up the extension structure, building the popup UI, implementing the prompt generator, adding frontend event tracking, and connecting to the backend database. Always prioritize minimal, working implementations and avoid adding advanced features unless explicitly requested.
 ---
 
-# Power Tracker v3 Builder Skill
+# EcoPrompt v3 Builder Skill
 
 ## Purpose
-This skill guides Claude to rebuild Power Tracker from scratch as a **minimal Chrome extension MVP**.
+This skill guides Claude to rebuild EcoPrompt from scratch as a **minimal Chrome extension MVP**.
 
 The goal is to create a clean, working system — not a complex, over-engineered product.
 
@@ -176,4 +176,4 @@ This skill exists to ensure:
 - clean structure
 - minimal working product
 
-NOT to build the full original Power Tracker system.
+NOT to build the full original EcoPrompt system.

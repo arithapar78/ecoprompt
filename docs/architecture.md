@@ -1,4 +1,4 @@
-# Power Tracker v3 Architecture
+# EcoPrompt Architecture
 
 ## Overview
 

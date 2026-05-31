@@ -1,4 +1,4 @@
-# Power Tracker v3 Backend Contract
+# EcoPrompt Backend Contract
 
 ## Base URL
 
