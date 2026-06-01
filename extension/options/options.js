@@ -1,17 +1,8 @@
 // options/options.js
-// Role: load watt history and render the stats + line chart.
-//
-// Chart logic:
-//   - X axis: time. Points are spread evenly across canvas width proportional
-//     to their actual timestamps so gaps are visible.
-//   - Y axis: watts. Range is 0 → max(watts) padded by 20%, so the line
-//     never touches the top edge.
-//   - Drawn with native canvas 2D — no library needed.
-//   - A thin grid of horizontal guide lines is drawn at 25% intervals.
+// Role: tab navigation, watt history rendering, stats + line chart.
 
 const PADDING = { top: 20, right: 20, bottom: 36, left: 48 };
 
-// Chart palettes — dark and light variants
 const CHART_DARK = {
   grid:        'rgba(255,255,255,0.05)',
   gridLabel:   '#555f72',
@@ -57,6 +48,18 @@ function toggleTheme() {
 
 document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
+// ── Tab navigation ──────────────────────────────────────────────────────────
+
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + target).classList.remove('hidden');
+  });
+});
+
 // ── Data loading ────────────────────────────────────────────────────────────
 
 async function loadAndRender() {
@@ -70,6 +73,8 @@ async function loadAndRender() {
     return;
   }
 
+  document.getElementById('chart').classList.remove('hidden');
+  document.getElementById('empty-msg').classList.add('hidden');
   setStats(history);
   drawChart(history);
 }
@@ -141,7 +146,6 @@ function drawChart(history) {
   const yMax = peak > 0 ? peak * 1.2 : 1;
   const n    = history.length;
 
-  // ── Horizontal grid lines + Y labels ─────────────────────────────────────
   ctx.font      = '10px -apple-system, sans-serif';
   ctx.textAlign = 'right';
 
@@ -160,7 +164,6 @@ function drawChart(history) {
     ctx.fillText(wVal.toFixed(1), pl - 6, yPx + 3.5);
   }
 
-  // ── Compute point coordinates ─────────────────────────────────────────────
   const points = history.map((entry, i) => ({
     x: pl + (n > 1 ? (i / (n - 1)) * chartW : chartW / 2),
     y: pt + chartH - (entry.watts / yMax) * chartH,
@@ -169,7 +172,6 @@ function drawChart(history) {
     ts: entry.ts,
   }));
 
-  // ── Filled area under the line ────────────────────────────────────────────
   const grad = ctx.createLinearGradient(0, pt, 0, pt + chartH);
   grad.addColorStop(0, CHART.fillTop);
   grad.addColorStop(1, CHART.fillBottom);
@@ -182,7 +184,6 @@ function drawChart(history) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // ── Line (glow pass then crisp pass) ─────────────────────────────────────
   function drawLine(lineWidth, strokeStyle, shadowBlur, shadowColor) {
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
@@ -201,10 +202,9 @@ function drawChart(history) {
     ctx.shadowBlur  = 0;
   }
 
-  drawLine(6,  CHART.lineGlow, 0, 'transparent');   // soft glow halo
-  drawLine(2,  CHART.line,     8, CHART.lineGlow);   // crisp line with glow
+  drawLine(6,  CHART.lineGlow, 0, 'transparent');
+  drawLine(2,  CHART.line,     8, CHART.lineGlow);
 
-  // ── Data points ───────────────────────────────────────────────────────────
   for (const p of points) {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
@@ -218,7 +218,6 @@ function drawChart(history) {
     ctx.stroke();
   }
 
-  // ── X axis time labels ────────────────────────────────────────────────────
   ctx.fillStyle = CHART.timeLabel;
   ctx.textAlign = 'center';
   ctx.font      = '10px -apple-system, sans-serif';
@@ -229,7 +228,6 @@ function drawChart(history) {
     ctx.fillText(label, points[idx].x, H - 8);
   }
 
-  // ── Legend ────────────────────────────────────────────────────────────────
   const sites = [...new Set(history.map((e) => e.site).filter(Boolean))];
   if (sites.length > 0) {
     ctx.textAlign = 'left';
@@ -247,14 +245,12 @@ function drawChart(history) {
   }
 }
 
-// ── Clear button ────────────────────────────────────────────────────────────
+// ── Clear / Refresh buttons ─────────────────────────────────────────────────
 
 document.getElementById('clear-btn').addEventListener('click', async () => {
   await chrome.runtime.sendMessage({ type: 'CLEAR_HISTORY' });
   await loadAndRender();
 });
-
-// ── Refresh button ───────────────────────────────────────────────────────────
 
 document.getElementById('refresh-btn').addEventListener('click', () => {
   loadAndRender();

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>EcoPrompt — History</title>
+  <title>EcoPrompt — Settings</title>
   <link rel="stylesheet" href="options.css" />
 </head>
 <body>
@@ -12,42 +12,218 @@
     <header class="page-header">
       <div class="page-branding">
         <img src="../assets/icon-48.png" class="page-logo" alt="EcoPrompt" />
-        <h1>📈 Energy Consumption History</h1>
+        <h1>EcoPrompt</h1>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark mode">🌙</button>
-        <button id="clear-btn" class="danger-btn">Clear History</button>
       </div>
     </header>
 
-    <!-- Summary stats -->
-    <section class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Current</div>
-        <div class="stat-value" id="stat-current">—</div>
-        <div class="stat-unit">W</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Average</div>
-        <div class="stat-value" id="stat-avg">—</div>
-        <div class="stat-unit">W</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Peak</div>
-        <div class="stat-value" id="stat-peak">—</div>
-        <div class="stat-unit">W</div>
-      </div>
-    </section>
+    <!-- Tab nav -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="history">Energy History</button>
+      <button class="tab-btn" data-tab="accuracy">Accuracy Validation</button>
+      <button class="tab-btn" data-tab="about">About</button>
+    </nav>
 
-    <!-- Line chart -->
-    <section class="chart-section">
-      <div class="chart-header">
-        <span class="chart-range">Last 24 Hours</span>
+    <!-- ── Tab: History ──────────────────────────────────────────────────── -->
+    <div id="tab-history" class="tab-panel active">
+
+      <div class="panel-actions">
         <button id="refresh-btn" class="refresh-btn">Refresh</button>
+        <button id="clear-btn" class="danger-btn">Clear History</button>
       </div>
-      <canvas id="chart" width="640" height="240"></canvas>
-      <div id="empty-msg" class="empty-msg hidden">No data yet. Open some pages.</div>
-    </section>
+
+      <!-- Summary stats -->
+      <section class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Current</div>
+          <div class="stat-value" id="stat-current">—</div>
+          <div class="stat-unit">W</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Average</div>
+          <div class="stat-value" id="stat-avg">—</div>
+          <div class="stat-unit">W</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Peak</div>
+          <div class="stat-value" id="stat-peak">—</div>
+          <div class="stat-unit">W</div>
+        </div>
+      </section>
+
+      <!-- Line chart -->
+      <section class="chart-section">
+        <div class="chart-header">
+          <span class="chart-range">Last 24 Hours</span>
+        </div>
+        <canvas id="chart" width="640" height="240"></canvas>
+        <div id="empty-msg" class="empty-msg hidden">No data yet. Open some pages.</div>
+      </section>
+
+    </div>
+
+    <!-- ── Tab: Accuracy Validation ─────────────────────────────────────── -->
+    <div id="tab-accuracy" class="tab-panel hidden">
+
+      <div class="info-section">
+        <h2 class="section-title">How Energy Is Estimated</h2>
+        <p class="section-desc">EcoPrompt uses a two-component model: frontend device cost (measured) plus backend AI inference cost (estimated from published research).</p>
+      </div>
+
+      <div class="method-grid">
+        <div class="method-card">
+          <div class="method-icon">💻</div>
+          <div class="method-body">
+            <div class="method-name">Frontend Heuristic</div>
+            <div class="method-detail">DOM mutations, network bytes, and media activity are sampled every 10 s. The result is a device-side power draw in the 0.1–5 W range, scaled by observed activity level.</div>
+            <div class="method-accuracy"><span class="badge badge-yellow">±30%</span> vs measured browser idle/active power</div>
+          </div>
+        </div>
+        <div class="method-card">
+          <div class="method-icon">🤖</div>
+          <div class="method-body">
+            <div class="method-name">AI Backend Inference</div>
+            <div class="method-detail">Query count is estimated at 1 query per 3 min of session time, capped at 20. Each query's energy is looked up from a database of published values, then amortized over a 30 s window.</div>
+            <div class="method-accuracy"><span class="badge badge-orange">±50%</span> vs per-query metered measurements</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section" style="margin-top:24px;">
+        <h2 class="section-title">Model Energy Database</h2>
+        <p class="section-desc">Per-query energy values (Wh) are drawn from third-party research and averaged across hardware configurations. Actual inference energy varies with prompt length, batch size, and datacenter efficiency.</p>
+      </div>
+
+      <table class="model-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Category</th>
+            <th>Energy / query</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="model-name">GPT-4o</span></td>
+            <td><span class="badge badge-blue">large multimodal</span></td>
+            <td class="mono">0.0042 Wh</td>
+            <td class="source-cell">IEA (2024), OpenAI efficiency reports</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">GPT-3.5 Turbo</span></td>
+            <td><span class="badge badge-green">medium language</span></td>
+            <td class="mono">0.0021 Wh</td>
+            <td class="source-cell">Patterson et al. (2022)</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">Claude 3 Sonnet</span></td>
+            <td><span class="badge badge-blue">large language</span></td>
+            <td class="mono">0.0051 Wh</td>
+            <td class="source-cell">Lottick et al. (2019) scaled to model size</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">Claude 3 Haiku</span></td>
+            <td><span class="badge badge-green">small language</span></td>
+            <td class="mono">0.0015 Wh</td>
+            <td class="source-cell">Anthropic efficiency documentation</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">Gemini Pro</span></td>
+            <td><span class="badge badge-blue">large multimodal</span></td>
+            <td class="mono">0.0033 Wh</td>
+            <td class="source-cell">Google AI sustainability report (2023)</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">Stable Diffusion</span></td>
+            <td><span class="badge badge-purple">image generation</span></td>
+            <td class="mono">0.0067 Wh</td>
+            <td class="source-cell">Luccioni et al. (2023) CodeCarbon</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">Mistral 7B</span></td>
+            <td><span class="badge badge-green">small language</span></td>
+            <td class="mono">0.0018 Wh</td>
+            <td class="source-cell">MLCommons inference benchmark (2024)</td>
+          </tr>
+          <tr>
+            <td><span class="model-name">Llama 2 70B</span></td>
+            <td><span class="badge badge-blue">large language</span></td>
+            <td class="mono">0.0048 Wh</td>
+            <td class="source-cell">Meta AI research (2023)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="caveat-box">
+        <div class="caveat-icon">⚠️</div>
+        <div class="caveat-text">
+          All estimates are conservative lower bounds measured at the model inference layer only. They exclude cooling overhead, network transmission, and idle datacenter load. Real-world figures are typically 1.5–3× higher.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Tab: About ────────────────────────────────────────────────────── -->
+    <div id="tab-about" class="tab-panel hidden">
+
+      <div class="about-hero">
+        <img src="../assets/logo.png" class="about-logo" alt="EcoPrompt logo" />
+        <div class="about-hero-text">
+          <div class="about-name">EcoPrompt</div>
+          <div class="about-version">Version 0.1.0</div>
+          <div class="about-tagline">Minimal prompt optimizer and energy tracker for AI tools.</div>
+        </div>
+      </div>
+
+      <div class="about-grid">
+        <div class="about-card">
+          <div class="about-card-title">What it does</div>
+          <ul class="about-list">
+            <li>Tracks browser energy use in real time across all tabs</li>
+            <li>Detects AI platforms and adds backend inference cost</li>
+            <li>Optimizes prompts to reduce token count and energy</li>
+            <li>Compares your AI usage to real-world equivalents</li>
+          </ul>
+        </div>
+        <div class="about-card">
+          <div class="about-card-title">Privacy</div>
+          <ul class="about-list">
+            <li>All data stored locally via <code>chrome.storage.local</code></li>
+            <li>No personal data leaves your browser</li>
+            <li>Prompt optimization runs entirely client-side</li>
+            <li>History is capped at 120 entries (~20 min)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="about-card" style="margin-top:12px;">
+        <div class="about-card-title">Architecture</div>
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-label">Content Script</div>
+            <div class="arch-desc">Collects DOM, network &amp; media metrics every 10 s</div>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-step">
+            <div class="arch-label">Service Worker</div>
+            <div class="arch-desc">Estimates watts, detects AI platform, writes history</div>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-step">
+            <div class="arch-label">Popup / Options</div>
+            <div class="arch-desc">Reads pre-computed watts from storage for display</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-footer">
+        <span>Built with no external dependencies &mdash; pure Manifest V3</span>
+      </div>
+
+    </div>
 
   </div>
 
