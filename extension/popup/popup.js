@@ -108,6 +108,15 @@ function setEnergyDisplay(watts, ai) {
 refreshDashboard();
 setInterval(refreshDashboard, 5000);
 
+// Initialize analytics consent to true on first install (can be changed later)
+(async () => {
+  const result = await chrome.storage.local.get("ecoPromptAnalyticsConsent");
+  if (typeof result.ecoPromptAnalyticsConsent === "undefined") {
+    await chrome.storage.local.set({ ecoPromptAnalyticsConsent: true });
+    console.log("[EcoPrompt Analytics] Consent initialized to true (first install)");
+  }
+})();
+
 // ── Prompt optimizer ───────────────────────────────────────────────────────────
 
 // Live token counter while the user types
@@ -121,7 +130,7 @@ originalPromptEl.addEventListener('input', () => {
 
 // ── Optimize button ────────────────────────────────────────────────────────────
 
-document.getElementById('optimize-btn').addEventListener('click', () => {
+document.getElementById('optimize-btn').addEventListener('click', async () => {
   const original = originalPromptEl.value.trim();
   if (!original) return;
 
@@ -158,4 +167,14 @@ document.getElementById('optimize-btn').addEventListener('click', () => {
   document.getElementById('stat-co2').textContent = co2Mg.toFixed(3);
 
   document.getElementById('result-card').classList.remove('hidden');
+
+  if (window.ecoTrackPromptOptimization) {
+    await window.ecoTrackPromptOptimization({
+      originalPrompt: original,
+      optimizedPrompt: optimized,
+      optimizationMode: "balanced",
+      platform: "EcoPrompt",
+      source: "prompt-generator-widget"
+    });
+  }
 });

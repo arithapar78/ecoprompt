@@ -10,6 +10,10 @@
     "storage"
   ],
 
+  "host_permissions": [
+    "https://trackoptimizationevent-5rbyyypj3a-ue.a.run.app/*"
+  ],
+
   "background": {
     "service_worker": "background/service-worker.js"
   },

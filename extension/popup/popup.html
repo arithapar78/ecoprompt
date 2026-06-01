@@ -157,13 +157,14 @@
   </div><!-- /view-optimizer -->
 
 
-  <!-- Script load order matters: rules-db → token-counter → optimizer → generator → popup -->
+  <!-- Script load order matters: rules-db → token-counter → optimizer → generator → analytics → popup -->
   <script src="../lib/prompt-rules-db.js"></script>
   <script src="../lib/token-counter.js"></script>
   <script src="../lib/prompt-optimizer.js"></script>
   <script src="../lib/prompt-generator.js"></script>
   <script src="../lib/energy-estimator.js"></script>
   <script src="../lib/api.js"></script>
+  <script src="../lib/analytics-tracker.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
