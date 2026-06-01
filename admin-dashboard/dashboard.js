@@ -1,7 +1,7 @@
 "use strict";
 
 // Paste the deployed getAnalyticsStats URL here after firebase deploy
-const STATS_ENDPOINT = "PASTE_GET_ANALYTICS_STATS_URL_HERE";
+const STATS_ENDPOINT = "https://getanalyticsstats-5rbyyypj3a-ue.a.run.app/";
 
 const STORAGE_KEY = "ecoprompt_admin_key";
 
