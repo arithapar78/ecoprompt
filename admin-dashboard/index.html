@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoPrompt Analytics Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <span class="logo">🌿</span>
+        <div>
+          <h1>EcoPrompt Analytics</h1>
+          <p class="subtitle">Anonymous school-wide token savings &amp; prompt optimization stats</p>
+        </div>
+      </div>
+      <div class="privacy-badge">Data privacy: Prompt text is never collected.</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Auth row -->
+    <section class="auth-row card">
+      <div class="auth-fields">
+        <label for="adminKey">Admin Key</label>
+        <input type="password" id="adminKey" placeholder="Enter admin key…" autocomplete="off" />
+        <button id="saveKeyBtn" class="btn btn-secondary">Save Key</button>
+        <button id="clearKeyBtn" class="btn btn-ghost">Clear Saved Key</button>
+      </div>
+      <div id="authStatus" class="auth-status"></div>
+    </section>
+
+    <!-- Controls row -->
+    <section class="controls-row card">
+      <div class="controls-inner">
+        <div class="range-group">
+          <label>Range</label>
+          <div class="segmented">
+            <button class="seg-btn active" data-range="today">Today</button>
+            <button class="seg-btn" data-range="month">This Month</button>
+            <button class="seg-btn" data-range="all">All Time</button>
+          </div>
+        </div>
+
+        <div class="picker-group" id="datePicker">
+          <label for="dateInput">Date</label>
+          <input type="date" id="dateInput" />
+        </div>
+
+        <div class="picker-group hidden" id="monthPicker">
+          <label for="monthInput">Month</label>
+          <input type="month" id="monthInput" />
+        </div>
+
+        <div class="action-group">
+          <button id="refreshBtn" class="btn btn-primary">Refresh</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error banner -->
+    <div id="errorBanner" class="error-banner hidden"></div>
+
+    <!-- Stat cards -->
+    <section class="stats-grid" id="statsGrid">
+      <div class="stat-card" id="sc-totalUsers">
+        <span class="stat-label">Total Users</span>
+        <span class="stat-value" id="val-totalUsers">—</span>
+      </div>
+      <div class="stat-card" id="sc-activeUsers">
+        <span class="stat-label">Active Users</span>
+        <span class="stat-value" id="val-activeUsers">—</span>
+        <span class="stat-sub" id="sub-activeUsers"></span>
+      </div>
+      <div class="stat-card" id="sc-prompts">
+        <span class="stat-label">Prompts Optimized</span>
+        <span class="stat-value" id="val-prompts">—</span>
+      </div>
+      <div class="stat-card accent" id="sc-tokensSaved">
+        <span class="stat-label">Tokens Saved</span>
+        <span class="stat-value" id="val-tokensSaved">—</span>
+      </div>
+      <div class="stat-card" id="sc-originalTokens">
+        <span class="stat-label">Original Tokens</span>
+        <span class="stat-value" id="val-originalTokens">—</span>
+      </div>
+      <div class="stat-card" id="sc-optimizedTokens">
+        <span class="stat-label">Optimized Tokens</span>
+        <span class="stat-value" id="val-optimizedTokens">—</span>
+      </div>
+      <div class="stat-card accent-green" id="sc-reduction">
+        <span class="stat-label">Avg Reduction</span>
+        <span class="stat-value" id="val-reduction">—</span>
+      </div>
+      <div class="stat-card accent-teal" id="sc-energy">
+        <span class="stat-label">Energy Saved (Wh)</span>
+        <span class="stat-value" id="val-energy">—</span>
+      </div>
+      <div class="stat-card accent-teal" id="sc-water">
+        <span class="stat-label">Water Saved (mL)</span>
+        <span class="stat-value" id="val-water">—</span>
+      </div>
+    </section>
+
+    <!-- Science-fair extra stats -->
+    <section class="impact-section card" id="impactSection">
+      <h2>Equivalent Impact</h2>
+      <div class="impact-grid" id="impactGrid">
+        <div class="impact-item">
+          <span class="impact-label">Total Tokens Avoided</span>
+          <span class="impact-value" id="imp-tokensAvoided">—</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-label">Avg Tokens Saved / Prompt</span>
+          <span class="impact-value" id="imp-avgPerPrompt">—</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-label">Most Active User</span>
+          <span class="impact-value" id="imp-mostActive">—</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-label">Best Reduction %</span>
+          <span class="impact-value" id="imp-bestReduction">—</span>
+        </div>
+      </div>
+      <p class="privacy-note">Data privacy note: Prompt text is never collected or stored. Users are identified only by anonymous labels (u1, u2, …).</p>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts-section">
+      <div class="chart-card card">
+        <h2>Tokens Saved per User</h2>
+        <div class="chart-wrap" id="chartTokensSaved"></div>
+      </div>
+
+      <div class="chart-card card">
+        <h2>Prompts Optimized per User</h2>
+        <div class="chart-wrap" id="chartPrompts"></div>
+      </div>
+
+      <div class="chart-card card">
+        <h2>Reduction % per User</h2>
+        <div class="chart-wrap" id="chartReduction"></div>
+      </div>
+
+      <div class="chart-card card">
+        <h2>Daily Trend — Tokens Saved</h2>
+        <div class="chart-wrap" id="chartDailyTrend"></div>
+      </div>
+
+      <div class="chart-card card">
+        <h2>Monthly Trend — Tokens Saved</h2>
+        <div class="chart-wrap" id="chartMonthlyTrend"></div>
+      </div>
+    </section>
+
+    <!-- Top users table -->
+    <section class="table-section card">
+      <h2>Top Users by Tokens Saved</h2>
+      <div class="table-wrap">
+        <table id="topUsersTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>User</th>
+              <th>Tokens Saved</th>
+              <th>Prompts Optimized</th>
+            </tr>
+          </thead>
+          <tbody id="topUsersBody">
+            <tr><td colspan="4" class="empty-row">No data loaded.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>EcoPrompt Admin Dashboard &mdash; Internal use only. All user data is anonymous.</p>
+  </footer>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
