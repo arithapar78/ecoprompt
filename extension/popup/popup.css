@@ -1,39 +1,63 @@
 /* popup/popup.css */
 
-/* ── Reset / Base ─────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
+/* ── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  --bg:          #0f1117;
+  --surface:     #181c27;
+  --surface-2:   #1e2333;
+  --border:      rgba(255,255,255,0.07);
+  --border-hover:rgba(255,255,255,0.15);
+  --accent:      #3ecf8e;
+  --accent-dim:  rgba(62,207,142,0.12);
+  --accent-glow: rgba(62,207,142,0.3);
+  --red:         #f25757;
+  --red-dim:     rgba(242,87,87,0.12);
+  --text-1:      #f0f2f7;
+  --text-2:      #8b93a7;
+  --text-3:      #555f72;
+  --radius:      10px;
+  --radius-sm:   6px;
+  --shadow:      0 2px 12px rgba(0,0,0,0.45);
+  --transition:  0.18s cubic-bezier(0.4,0,0.2,1);
 }
 
+/* ── Reset / Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
   width: 380px;
   min-height: 520px;
   margin: 0;
   padding: 0;
-  background: #f9f9f9;
-  color: #1a1a1a;
+  background: var(--bg);
+  color: var(--text-1);
   transition: width 0.15s ease;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Header ───────────────────────────────────── */
+/* ── Header ───────────────────────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px 10px;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 11px 14px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-1);
   flex: 1;
   display: flex;
   align-items: center;
   gap: 6px;
+  letter-spacing: 0.01em;
 }
 
 .header-logo {
@@ -43,42 +67,64 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Icon button (✏️ / ←) ─────────────────────── */
+/* ── Icon buttons (✏️ ← + −) ─────────────────────────────────────────────── */
 .icon-btn {
-  background: none;
-  border: 1.5px solid #1a1a1a;
+  background: transparent;
+  border: 1px solid var(--border);
   cursor: pointer;
-  font-size: 16px;
-  padding: 2px 4px;
+  font-size: 14px;
+  padding: 4px 7px;
   line-height: 1;
-  border-radius: 4px;
-  color: #444;
-  transition: background 0.15s;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition), transform var(--transition),
+              box-shadow var(--transition);
 }
 
 .icon-btn:hover {
-  background: #f0f0f0;
+  background: var(--surface-2);
+  border-color: var(--border-hover);
+  color: var(--text-1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-/* ── Cards ────────────────────────────────────── */
+.icon-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ── Resize buttons ───────────────────────────────────────────────────────── */
+.resize-btns { display: flex; gap: 3px; }
+
+.resize-btn {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 7px;
+  line-height: 1.2;
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
 .card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 13px 14px;
   margin: 10px 10px 0;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border);
+  transition: border-color var(--transition);
 }
 
 .card-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
+  letter-spacing: 0.09em;
+  color: var(--text-3);
   margin-bottom: 8px;
 }
 
-/* ── Activity indicator ───────────────────────── */
+/* ── Activity indicator ───────────────────────────────────────────────────── */
 .activity-indicator {
   display: flex;
   align-items: center;
@@ -89,69 +135,98 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #4caf50;
-  /* TODO: pulse animation when real activity is detected */
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50%      { box-shadow: 0 0 0 5px transparent; }
 }
 
 .activity-text {
   font-size: 13px;
-  color: #333;
+  color: var(--text-2);
 }
 
-/* ── Energy value ─────────────────────────────── */
+/* ── Energy value ─────────────────────────────────────────────────────────── */
 .card-energy {
   text-align: center;
-  padding: 16px 14px;
+  padding: 20px 14px;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-energy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .energy-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--text-1);
   line-height: 1;
+  letter-spacing: -0.02em;
+  position: relative;
 }
 
 .energy-unit {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
-  color: #666;
+  color: var(--text-2);
 }
 
-/* ── AI backend info (inside energy card) ─────── */
+/* ── AI backend info ──────────────────────────────────────────────────────── */
 .ai-info {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
   flex-wrap: wrap;
+  position: relative;
 }
 
 .ai-model-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #fff;
-  background: #1a1a1a;
-  border-radius: 10px;
-  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(62,207,142,0.2);
+  border-radius: 20px;
+  padding: 2px 9px;
+  letter-spacing: 0.03em;
 }
 
 .ai-watts-label {
-  font-size: 11px;
-  color: #888;
+  font-size: 10px;
+  color: var(--text-3);
 }
 
-/* ── Comparisons ──────────────────────────────── */
+/* ── Comparisons ──────────────────────────────────────────────────────────── */
 .comparisons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
 .comparison-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.comparison-row:hover {
+  background: var(--surface-2);
 }
 
 .comparison-icon {
@@ -166,176 +241,205 @@ body {
 }
 
 .comparison-value {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
 }
 
 .comparison-label {
-  font-size: 11px;
-  color: #888;
+  font-size: 10px;
+  color: var(--text-2);
 }
 
-/* ── Optimizer view ───────────────────────────── */
+/* ── Optimizer view ───────────────────────────────────────────────────────── */
 textarea {
   width: 100%;
   resize: vertical;
   font-size: 13px;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-family: inherit;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--text-1);
+  background: var(--bg);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  line-height: 1.55;
 }
 
 textarea:focus {
   outline: none;
-  border-color: #888;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
+textarea::placeholder {
+  color: var(--text-3);
+}
+
+/* ── Primary button ───────────────────────────────────────────────────────── */
 .primary-btn {
-  margin-top: 8px;
+  margin-top: 10px;
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--accent);
+  color: #0a1a12;
   border: none;
-  border-radius: 6px;
-  transition: background 0.15s;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), transform var(--transition),
+              box-shadow var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%);
+  pointer-events: none;
 }
 
 .primary-btn:hover {
-  background: #333;
+  background: #51dea0;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
+.primary-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ── Output text ──────────────────────────────────────────────────────────── */
 .output-text {
   font-size: 13px;
-  color: #333;
+  color: var(--text-2);
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: 1.55;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 11px;
+  border: 1px solid var(--border);
 }
 
-/* ── Token counter (live, below textarea) ─────── */
+/* ── Token counter ────────────────────────────────────────────────────────── */
 .token-row {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 5px;
   margin-bottom: 2px;
 }
 
 .token-label {
   font-size: 11px;
-  color: #888;
+  color: var(--text-3);
 }
 
 .token-count {
   font-size: 11px;
-  font-weight: 600;
-  color: #555;
+  font-weight: 700;
+  color: var(--accent);
 }
 
-/* ── Token stats (below optimized result) ─────── */
+/* ── Token stats ──────────────────────────────────────────────────────────── */
 .token-stats {
-  margin-top: 10px;
-  border-top: 1px solid #ebebeb;
-  padding-top: 8px;
+  margin-top: 11px;
+  border-top: 1px solid var(--border);
+  padding-top: 9px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .token-stat-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 3px 0;
+}
+
+.token-stat-row--saved {
+  background: rgba(62,207,142,0.06);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 0 -6px;
 }
 
 .token-stat-label {
   font-size: 11px;
-  color: #888;
+  color: var(--text-3);
 }
 
 .token-stat-value {
   font-size: 11px;
-  font-weight: 600;
-  color: #555;
+  font-weight: 700;
+  color: var(--text-2);
 }
 
 .token-saved {
-  color: #2e7d32;
+  color: var(--accent);
 }
 
-/* ── Environmental savings section ────────────── */
+/* ── Environmental savings ────────────────────────────────────────────────── */
 .savings-section {
-  margin-top: 10px;
-  border-top: 1px solid #ebebeb;
-  padding-top: 8px;
+  margin-top: 11px;
+  border-top: 1px solid var(--border);
+  padding-top: 9px;
 }
 
 .savings-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
-  margin-bottom: 6px;
+  letter-spacing: 0.09em;
+  color: var(--text-3);
+  margin-bottom: 7px;
 }
 
 .savings-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
+  gap: 7px;
+  margin-bottom: 4px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: background var(--transition);
 }
 
-.savings-icon {
-  font-size: 13px;
-  flex-shrink: 0;
+.savings-row:hover {
+  background: var(--surface-2);
 }
+
+.savings-icon { font-size: 13px; flex-shrink: 0; }
 
 .savings-text {
   font-size: 11px;
-  color: #555;
+  color: var(--text-3);
 }
 
 .savings-value {
-  font-weight: 600;
-  color: #2e7d32;
+  font-weight: 700;
+  color: var(--accent);
 }
 
-/* ── Status message ───────────────────────────── */
+/* ── Status message ───────────────────────────────────────────────────────── */
 .status {
   font-size: 12px;
-  color: #666;
+  color: var(--text-3);
   padding: 6px 14px 10px;
   text-align: center;
 }
 
-/* ── Resize buttons ───────────────────────────── */
-.resize-btns {
-  display: flex;
-  gap: 2px;
-}
-
-.resize-btn {
-  font-size: 14px;
-  font-weight: 700;
-  padding: 1px 6px;
-  line-height: 1.2;
-}
-
-/* ── Spacing at bottom of popup ───────────────── */
+/* ── Spacing ──────────────────────────────────────────────────────────────── */
 #view-dashboard,
 #view-optimizer {
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
-/* ── Utility ──────────────────────────────────── */
-.hidden {
-  display: none;
-}
+/* ── Utility ──────────────────────────────────────────────────────────────── */
+.hidden { display: none; }

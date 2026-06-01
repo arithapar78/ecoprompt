@@ -9,7 +9,20 @@
 //   - Drawn with native canvas 2D — no library needed.
 //   - A thin grid of horizontal guide lines is drawn at 25% intervals.
 
-const PADDING = { top: 16, right: 16, bottom: 32, left: 44 };
+const PADDING = { top: 20, right: 20, bottom: 36, left: 48 };
+
+// Chart palette — matches dark CSS tokens
+const CHART = {
+  grid:        'rgba(255,255,255,0.05)',
+  gridLabel:   '#555f72',
+  line:        '#3ecf8e',
+  lineGlow:    'rgba(62,207,142,0.5)',
+  fillTop:     'rgba(62,207,142,0.18)',
+  fillBottom:  'rgba(62,207,142,0.01)',
+  dotFill:     '#3ecf8e',
+  dotStroke:   '#0f1117',
+  timeLabel:   '#555f72',
+};
 
 // ── Data loading ────────────────────────────────────────────────────────────
 
@@ -103,15 +116,15 @@ function drawChart(history) {
     const wVal = (peak * i) / 4;
     const yPx  = pt + chartH - (i / 4) * chartH;
 
-    ctx.strokeStyle = '#e8e8e8';
+    ctx.strokeStyle = CHART.grid;
     ctx.lineWidth   = 1;
     ctx.beginPath();
     ctx.moveTo(pl, yPx);
     ctx.lineTo(W - pr, yPx);
     ctx.stroke();
 
-    ctx.fillStyle = '#999';
-    ctx.fillText(wVal.toFixed(1), pl - 4, yPx + 3);
+    ctx.fillStyle = CHART.gridLabel;
+    ctx.fillText(wVal.toFixed(1), pl - 6, yPx + 3.5);
   }
 
   // ── Compute point coordinates ─────────────────────────────────────────────
@@ -125,8 +138,8 @@ function drawChart(history) {
 
   // ── Filled area under the line ────────────────────────────────────────────
   const grad = ctx.createLinearGradient(0, pt, 0, pt + chartH);
-  grad.addColorStop(0, 'rgba(52, 168, 83, 0.25)');
-  grad.addColorStop(1, 'rgba(52, 168, 83, 0.02)');
+  grad.addColorStop(0, CHART.fillTop);
+  grad.addColorStop(1, CHART.fillBottom);
 
   ctx.beginPath();
   ctx.moveTo(points[0].x, pt + chartH);
@@ -136,40 +149,51 @@ function drawChart(history) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // ── Line ──────────────────────────────────────────────────────────────────
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const cur  = points[i];
-    const cpx  = (prev.x + cur.x) / 2;
-    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+  // ── Line (glow pass then crisp pass) ─────────────────────────────────────
+  function drawLine(lineWidth, strokeStyle, shadowBlur, shadowColor) {
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const cur  = points[i];
+      const cpx  = (prev.x + cur.x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+    }
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth   = lineWidth;
+    ctx.lineJoin    = 'round';
+    ctx.shadowBlur  = shadowBlur;
+    ctx.shadowColor = shadowColor;
+    ctx.stroke();
+    ctx.shadowBlur  = 0;
   }
-  ctx.strokeStyle = '#34a853';
-  ctx.lineWidth   = 2;
-  ctx.lineJoin    = 'round';
-  ctx.stroke();
+
+  drawLine(6,  CHART.lineGlow, 0, 'transparent');   // soft glow halo
+  drawLine(2,  CHART.line,     8, CHART.lineGlow);   // crisp line with glow
 
   // ── Data points ───────────────────────────────────────────────────────────
   for (const p of points) {
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    ctx.fillStyle   = siteColor(p.site) !== '#888' ? siteColor(p.site) : '#34a853';
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth   = 1.5;
+    ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle   = siteColor(p.site) !== '#888' ? siteColor(p.site) : CHART.dotFill;
+    ctx.strokeStyle = CHART.dotStroke;
+    ctx.lineWidth   = 2;
+    ctx.shadowBlur  = 6;
+    ctx.shadowColor = CHART.lineGlow;
     ctx.fill();
+    ctx.shadowBlur  = 0;
     ctx.stroke();
   }
 
   // ── X axis time labels ────────────────────────────────────────────────────
-  ctx.fillStyle = '#999';
+  ctx.fillStyle = CHART.timeLabel;
   ctx.textAlign = 'center';
   ctx.font      = '10px -apple-system, sans-serif';
   const labelCount = Math.min(n, 5);
   for (let i = 0; i < labelCount; i++) {
     const idx   = Math.round((i / (labelCount - 1 || 1)) * (n - 1));
     const label = new Date(history[idx].ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    ctx.fillText(label, points[idx].x, H - 6);
+    ctx.fillText(label, points[idx].x, H - 8);
   }
 
   // ── Legend ────────────────────────────────────────────────────────────────
@@ -181,10 +205,10 @@ function drawChart(history) {
     for (const site of sites) {
       ctx.fillStyle = siteColor(site);
       ctx.beginPath();
-      ctx.arc(lx + 4, pt - 4, 4, 0, Math.PI * 2);
+      ctx.arc(lx + 4, pt - 6, 3.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#666';
-      ctx.fillText(site, lx + 12, pt - 1);
+      ctx.fillStyle = CHART.gridLabel;
+      ctx.fillText(site, lx + 12, pt - 3);
       lx += ctx.measureText(site).width + 24;
     }
   }
