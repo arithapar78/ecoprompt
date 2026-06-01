@@ -21,6 +21,44 @@
   --transition:  0.18s cubic-bezier(0.4,0,0.2,1);
 }
 
+/* ── Light mode overrides ─────────────────────────────────────────────────── */
+body.light {
+  --bg:          #f4f6fa;
+  --surface:     #ffffff;
+  --surface-2:   #eef0f6;
+  --border:      rgba(0,0,0,0.09);
+  --border-hover:rgba(0,0,0,0.18);
+  --accent:      #27a96c;
+  --accent-dim:  rgba(39,169,108,0.12);
+  --accent-glow: rgba(39,169,108,0.28);
+  --red:         #d93636;
+  --red-dim:     rgba(217,54,54,0.10);
+  --text-1:      #111827;
+  --text-2:      #4b5563;
+  --text-3:      #9ca3af;
+  --shadow:      0 2px 16px rgba(0,0,0,0.10);
+}
+
+/* ── Theme toggle ─────────────────────────────────────────────────────────── */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 12px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition);
+}
+
+.theme-toggle:hover {
+  background: var(--surface-2);
+  border-color: var(--border-hover);
+  color: var(--text-1);
+}
+
 /* ── Reset / Base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -68,10 +106,7 @@ h1 {
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--text-1) 0%, var(--text-2) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-1);
 }
 
 /* ── Danger button ────────────────────────────────────────────────────────── */

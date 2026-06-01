@@ -11,8 +11,8 @@
 
 const PADDING = { top: 20, right: 20, bottom: 36, left: 48 };
 
-// Chart palette — matches dark CSS tokens
-const CHART = {
+// Chart palettes — dark and light variants
+const CHART_DARK = {
   grid:        'rgba(255,255,255,0.05)',
   gridLabel:   '#555f72',
   line:        '#3ecf8e',
@@ -23,6 +23,39 @@ const CHART = {
   dotStroke:   '#0f1117',
   timeLabel:   '#555f72',
 };
+
+const CHART_LIGHT = {
+  grid:        'rgba(0,0,0,0.07)',
+  gridLabel:   '#9ca3af',
+  line:        '#27a96c',
+  lineGlow:    'rgba(39,169,108,0.4)',
+  fillTop:     'rgba(39,169,108,0.14)',
+  fillBottom:  'rgba(39,169,108,0.01)',
+  dotFill:     '#27a96c',
+  dotStroke:   '#f4f6fa',
+  timeLabel:   '#9ca3af',
+};
+
+let isDark = true;
+let CHART = CHART_DARK;
+
+// ── Theme ───────────────────────────────────────────────────────────────────
+
+function applyTheme(dark) {
+  isDark = dark;
+  CHART = dark ? CHART_DARK : CHART_LIGHT;
+  document.body.classList.toggle('light', !dark);
+  document.getElementById('theme-toggle').textContent = dark ? '🌙' : '☀️';
+}
+
+function toggleTheme() {
+  const next = !isDark;
+  applyTheme(next);
+  chrome.storage.local.set({ ecoPromptTheme: next ? 'dark' : 'light' });
+  loadAndRender();
+}
+
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
 // ── Data loading ────────────────────────────────────────────────────────────
 
@@ -229,4 +262,8 @@ document.getElementById('refresh-btn').addEventListener('click', () => {
 
 // ── Init ────────────────────────────────────────────────────────────────────
 
-loadAndRender();
+(async () => {
+  const { ecoPromptTheme } = await chrome.storage.local.get('ecoPromptTheme');
+  applyTheme(ecoPromptTheme !== 'light');
+  loadAndRender();
+})();

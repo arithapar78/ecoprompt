@@ -1,6 +1,34 @@
 // popup/popup.js
 // Role: handle view switching, live energy display, and the prompt optimizer UI.
 
+// ── Theme (light / dark) ───────────────────────────────────────────────────────
+
+let isDark = true;
+
+function applyTheme(dark) {
+  isDark = dark;
+  document.body.classList.toggle('light', !dark);
+  const icon = dark ? '🌙' : '☀️';
+  const t1 = document.getElementById('theme-toggle');
+  const t2 = document.getElementById('theme-toggle-2');
+  if (t1) t1.textContent = icon;
+  if (t2) t2.textContent = icon;
+}
+
+function toggleTheme() {
+  const next = !isDark;
+  applyTheme(next);
+  chrome.storage.local.set({ ecoPromptTheme: next ? 'dark' : 'light' });
+}
+
+(async () => {
+  const { ecoPromptTheme } = await chrome.storage.local.get('ecoPromptTheme');
+  applyTheme(ecoPromptTheme !== 'light');
+})();
+
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+document.getElementById('theme-toggle-2').addEventListener('click', toggleTheme);
+
 // ── Width resizing ─────────────────────────────────────────────────────────────
 
 const WIDTHS = [300, 380, 480, 580];
