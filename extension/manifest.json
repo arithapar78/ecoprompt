@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EcoPrompt",
-  "version": "0.1.0",
+  "version": "10.0.0",
   "description": "Minimal prompt optimizer and usage tracker.",
 
   "permissions": [
