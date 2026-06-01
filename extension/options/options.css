@@ -107,10 +107,39 @@ h1 {
   padding: 16px;
 }
 
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.chart-range {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+}
+
+.refresh-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  color: #444;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.refresh-btn:hover {
+  border-color: #34a853;
+  color: #34a853;
+}
+
 canvas {
   display: block;
   width: 100%;
-  height: 220px;
+  height: 240px;
 }
 
 .empty-msg {

@@ -12,7 +12,7 @@
     <header class="page-header">
       <div class="page-branding">
         <img src="../assets/icon-48.png" class="page-logo" alt="EcoPrompt" />
-        <h1>Energy History</h1>
+        <h1>📈 Energy Consumption History</h1>
       </div>
       <button id="clear-btn" class="danger-btn">Clear History</button>
     </header>
@@ -38,7 +38,11 @@
 
     <!-- Line chart -->
     <section class="chart-section">
-      <canvas id="chart" width="640" height="220"></canvas>
+      <div class="chart-header">
+        <span class="chart-range">Last 24 Hours</span>
+        <button id="refresh-btn" class="refresh-btn">Refresh</button>
+      </div>
+      <canvas id="chart" width="640" height="240"></canvas>
       <div id="empty-msg" class="empty-msg hidden">No data yet. Open some pages.</div>
     </section>
 

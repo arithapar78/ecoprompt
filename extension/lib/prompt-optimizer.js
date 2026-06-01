@@ -853,11 +853,11 @@ function calculateSavings(original, optimized) {
   const origW    = words(original);
   const optW     = words(optimized);
   const removed  = Math.max(0, origW - optW);
-  const pctOff   = origW > 0 ? Math.round((removed / origW) * 100) : 0;
 
   const origTok  = countTokens(original);
   const optTok   = countTokens(optimized);
   const tokSaved = Math.max(0, origTok - optTok);
+  const pctOff   = origTok > 0 ? Math.round((tokSaved / origTok) * 100) : 0;
 
   const energyWh = tokSaved * WH_PER_TOKEN;
   const waterL   = energyWh * KWH_PER_WH * LITERS_WATER_PER_KWH;

@@ -76,7 +76,6 @@ function drawChart(history) {
   const canvas = document.getElementById('chart');
   const ctx    = canvas.getContext('2d');
 
-  // Sync canvas buffer to actual rendered CSS size (handles devicePixelRatio).
   const dpr  = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   canvas.width  = Math.round(rect.width  * dpr);
@@ -92,9 +91,9 @@ function drawChart(history) {
 
   ctx.clearRect(0, 0, W, H);
 
-  // Y range: 0 to peak + 20% headroom.
   const peak = Math.max(...history.map((e) => e.watts));
   const yMax = peak > 0 ? peak * 1.2 : 1;
+  const n    = history.length;
 
   // ── Horizontal grid lines + Y labels ─────────────────────────────────────
   ctx.font      = '10px -apple-system, sans-serif';
@@ -115,37 +114,65 @@ function drawChart(history) {
     ctx.fillText(wVal.toFixed(1), pl - 4, yPx + 3);
   }
 
-  // ── Bars ──────────────────────────────────────────────────────────────────
-  // Each entry gets an equal-width slot. Gap is 20% of slot width.
-  const n       = history.length;
-  const slotW   = chartW / n;
-  const barW    = Math.max(1, slotW * 0.8);
-  const gapW    = slotW - barW;
+  // ── Compute point coordinates ─────────────────────────────────────────────
+  const points = history.map((entry, i) => ({
+    x: pl + (n > 1 ? (i / (n - 1)) * chartW : chartW / 2),
+    y: pt + chartH - (entry.watts / yMax) * chartH,
+    watts: entry.watts,
+    site: entry.site,
+    ts: entry.ts,
+  }));
 
-  history.forEach((entry, i) => {
-    const barH  = (entry.watts / yMax) * chartH;
-    const x     = pl + i * slotW + gapW / 2;
-    const y     = pt + chartH - barH;
+  // ── Filled area under the line ────────────────────────────────────────────
+  const grad = ctx.createLinearGradient(0, pt, 0, pt + chartH);
+  grad.addColorStop(0, 'rgba(52, 168, 83, 0.25)');
+  grad.addColorStop(1, 'rgba(52, 168, 83, 0.02)');
 
-    ctx.fillStyle = siteColor(entry.site);
-    ctx.fillRect(x, y, barW, barH);
-  });
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, pt + chartH);
+  points.forEach((p) => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(points[points.length - 1].x, pt + chartH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // ── Line ──────────────────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const cur  = points[i];
+    const cpx  = (prev.x + cur.x) / 2;
+    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+  }
+  ctx.strokeStyle = '#34a853';
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+
+  // ── Data points ───────────────────────────────────────────────────────────
+  for (const p of points) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle   = siteColor(p.site) !== '#888' ? siteColor(p.site) : '#34a853';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth   = 1.5;
+    ctx.fill();
+    ctx.stroke();
+  }
 
   // ── X axis time labels ────────────────────────────────────────────────────
-  // Show up to 5 evenly-spaced labels, centred on their bar.
   ctx.fillStyle = '#999';
   ctx.textAlign = 'center';
+  ctx.font      = '10px -apple-system, sans-serif';
   const labelCount = Math.min(n, 5);
   for (let i = 0; i < labelCount; i++) {
     const idx   = Math.round((i / (labelCount - 1 || 1)) * (n - 1));
-    const entry = history[idx];
-    const xMid  = pl + idx * slotW + slotW / 2;
-    const label = new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    ctx.fillText(label, xMid, H - 6);
+    const label = new Date(history[idx].ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    ctx.fillText(label, points[idx].x, H - 6);
   }
 
   // ── Legend ────────────────────────────────────────────────────────────────
-  // Show one dot + name for each distinct site present.
   const sites = [...new Set(history.map((e) => e.site).filter(Boolean))];
   if (sites.length > 0) {
     ctx.textAlign = 'left';
@@ -168,6 +195,12 @@ function drawChart(history) {
 document.getElementById('clear-btn').addEventListener('click', async () => {
   await chrome.runtime.sendMessage({ type: 'CLEAR_HISTORY' });
   await loadAndRender();
+});
+
+// ── Refresh button ───────────────────────────────────────────────────────────
+
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  loadAndRender();
 });
 
 // ── Init ────────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 // lib/token-counter.js
 // Simple token estimation: 1 token = 8 characters.
 
-const CHARS_PER_TOKEN = 8;
+const CHARS_PER_TOKEN = 4;
 
 /**
  * Count tokens for a string.
