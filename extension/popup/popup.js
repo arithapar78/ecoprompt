@@ -124,9 +124,9 @@ function setEnergyDisplay(watts, ai) {
   document.querySelector('.bulbs-value').textContent =
     (watts / 6).toFixed(3);
 
-  // gallons/hr = (watts / 1000) * 0.13
+  // gallons/hr = (watts / 1000) * 0.13; fixed 0.7 gal/hr on AI sites
   document.querySelector('.water-value').textContent =
-    ((watts / 1000) * 0.13).toFixed(4);
+    ai?.modelName ? '0.7000' : ((watts / 1000) * 0.13).toFixed(4);
 
   // g/hr = (watts / 1000) * 386
   document.querySelector('.co2-value').textContent =
