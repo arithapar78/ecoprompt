@@ -706,9 +706,64 @@ const FILLERS = [
   'your', 'yours',
   // "my" as standalone possessive padding ("my question", "my request")
   'my',
+  // Object pronoun padding ("help me", "tell me", "show me")
+  'me',
 
   // Conjunctions safe to strip at sentence boundaries
   'and', 'or',
+
+  // Additional filler words and phrases
+  // Redundant time/sequence markers
+  'now', 'currently', 'at this point', 'at this time', 'at the moment',
+  'right now', 'these days', 'nowadays', 'today',
+  'already', 'still', 'yet', 'soon', 'eventually', 'finally',
+  'previously', 'earlier', 'before', 'afterwards', 'afterward',
+  'recently', 'lately', 'immediately', 'instantly',
+
+  // Redundant meta-commentary
+  'as i mentioned', 'as i said', 'as mentioned', 'as stated',
+  'as noted', 'as discussed', 'as we discussed',
+  'like i said', 'like i mentioned',
+  'to be honest', 'to be fair', 'to be clear', 'to be specific',
+  'to be precise', 'to be exact',
+  'in other words', 'that is to say', 'that is',
+  'needless to say',
+  'long story short', 'to make a long story short',
+  'at the end of the day',
+  'all things considered', 'all in all', 'on the whole', 'overall',
+  'in general', 'in particular',
+  'as a matter of fact', 'in fact', 'in reality', 'in truth',
+  'to tell the truth', 'truth be told',
+  'believe it or not',
+
+  // Filler intensifiers / qualifiers not already listed
+  'kind of', 'sort of', 'a bit', 'a little', 'a little bit',
+  'way too', 'so very', 'so much', 'so many',
+  'real', 'pretty', 'fairly', 'awfully',
+  'too',
+
+  // Discourse connectors that add no meaning
+  'well', 'so', 'okay', 'ok', 'right',
+  'look', 'listen', 'see',
+  'now then',
+  'moving on', 'anyway', 'anyways',
+  'with that said', 'having said that', 'that being said', 'that said',
+  'on that note', 'on a related note',
+  'going forward', 'from here on', 'from now on',
+
+  // Redundant subject/object pronouns used as padding
+  'i', 'we', 'they', 'it',
+  'myself', 'yourself', 'themselves', 'itself',
+
+  // Filler question starters
+  'would it be possible', 'is it possible',
+  'would it be okay', 'is it okay', 'would it be alright', 'is it alright',
+  'i was just wondering', 'i am just wondering',
+  'could you tell me', 'can you tell me',
+  'could you show me', 'can you show me',
+  'could you help me', 'can you help me',
+  'i would appreciate your help with',
+  'i need your help with',
 ];
 
 // ── Preamble wipe ──────────────────────────────────────────────────────────────
