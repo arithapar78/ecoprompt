@@ -94,11 +94,16 @@ async function refreshDashboard() {
     totalWatts = frontendWatts + aiWatts;
   }
 
-  console.log('[EcoPrompt popup] totalWatts:', totalWatts.toFixed(4), '| aiWatts:', (ai?.aiWatts ?? 0).toFixed(4));
-
   setEnergyDisplay(totalWatts, ai);
 }
 
+/**
+ * Render the live figures. Device and datacenter costs are ADDITIVE: the shown
+ * watts / CO2 / water are the frontend estimate plus the backend inference share.
+ *
+ * @param {number|null} watts - total (frontend + backend)
+ * @param {object|null} ai    - cached AI info from the service worker
+ */
 function setEnergyDisplay(watts, ai) {
   const energyEl  = document.querySelector('.energy-value');
   const aiInfoEl  = document.getElementById('ai-info');
@@ -113,9 +118,25 @@ function setEnergyDisplay(watts, ai) {
 
   energyEl.innerHTML = `${watts.toFixed(2)} <span class="energy-unit">W</span>`;
 
+  const aiWatts       = ai?.aiWatts ?? 0;
+  const aiCo2GPerHr   = ai?.aiCo2GPerHr ?? 0;
+  const aiWaterLPerHr = ai?.aiWaterLPerHr ?? 0;
+
+  // Device-side share only — the backend share is added separately below and
+  // carries its own provider-specific grid and water factors.
+  const frontendWatts = Math.max(0, watts - aiWatts);
+
+  // Backend water is metered in litres; the display is in US gallons.
+  const L_TO_GAL = 0.264;
+
+  const co2GPerHr   = (frontendWatts / 1000) * 386  + aiCo2GPerHr;
+  const waterGalPerHr = (frontendWatts / 1000) * 0.13 + aiWaterLPerHr * L_TO_GAL;
+
   if (ai?.modelName) {
     aiModelEl.textContent = ai.modelName;
-    aiWattsEl.textContent = `+${(ai.aiWatts ?? 0).toFixed(3)} W backend`;
+    aiWattsEl.textContent =
+      `+${aiWatts.toFixed(1)} W · +${aiCo2GPerHr.toFixed(1)} g/hr · ` +
+      `+${(aiWaterLPerHr * L_TO_GAL).toFixed(4)} gal/hr backend`;
     aiInfoEl.classList.remove('hidden');
   } else {
     aiInfoEl.classList.add('hidden');
@@ -124,13 +145,9 @@ function setEnergyDisplay(watts, ai) {
   document.querySelector('.bulbs-value').textContent =
     (watts / 6).toFixed(3);
 
-  // gallons/hr = (watts / 1000) * 0.13; fixed 0.7 gal/hr on AI sites
-  document.querySelector('.water-value').textContent =
-    ai?.modelName ? '0.7000' : ((watts / 1000) * 0.13).toFixed(4);
+  document.querySelector('.water-value').textContent = waterGalPerHr.toFixed(4);
 
-  // g/hr = (watts / 1000) * 386
-  document.querySelector('.co2-value').textContent =
-    ((watts / 1000) * 386).toFixed(3);
+  document.querySelector('.co2-value').textContent = co2GPerHr.toFixed(3);
 }
 
 refreshDashboard();

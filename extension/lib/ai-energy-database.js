@@ -2,78 +2,119 @@
 // AI model energy data and site detection patterns.
 // Used by the service worker to identify AI sites and estimate backend energy.
 
+// ── Provider infrastructure ────────────────────────────────────────────────
+// Datacenter multipliers from Jegham et al., "How Hungry is AI?" (arXiv:2505.09598),
+// Table 1. Used to turn a model's per-query energy into water and CO2.
+//
+//   PUE        — power usage effectiveness (facility overhead per unit of IT power)
+//   wueSite    — on-site water for cooling, L per kWh of IT power
+//   wueSource  — off-site water embedded in generation, L per kWh of total power
+//   cif        — carbon intensity factor, kgCO2e per kWh
+
+const AI_PROVIDER_INFRA = {
+  openai:    { pue: 1.12, wueSite: 0.30, wueSource: 4.350, cif: 0.350 }, // Azure
+  anthropic: { pue: 1.14, wueSite: 0.18, wueSource: 5.110, cif: 0.287 }, // AWS
+  deepseek:  { pue: 1.27, wueSite: 1.20, wueSource: 6.016, cif: 0.600 },
+  meta:      { pue: 1.14, wueSite: 0.18, wueSource: 5.110, cif: 0.287 }, // AWS
+  google:    { pue: 1.10, wueSite: 0.20, wueSource: 4.000, cif: 0.300 },
+};
+
+// Fallback for platforms whose host infrastructure isn't published — the AWS
+// row is the most common case and sits mid-range across all five providers.
+const DEFAULT_PROVIDER = 'meta';
+
 // ── Model energy data ──────────────────────────────────────────────────────
-// energyPerQuery: Wh consumed by one backend inference request (conservative estimates)
+// energyPerQuery: Wh for ONE inference request, from the same benchmark, using
+// the medium-prompt case (1k tokens in / 1k tokens out) mean. These are 100–300×
+// the values this file previously carried, which were low by orders of magnitude.
 
 const AI_MODEL_DATABASE = {
-  'gpt-4o': {
-    name: 'GPT-4o',
-    energyPerQuery: 0.0042,
-    sites: ['chat.openai.com', 'chatgpt.com', 'openai.com', 'platform.openai.com'],
-    detectionPatterns: [/gpt-?4o/i, /chatgpt/i],
+  'gpt-5': {
+    name: 'GPT-5',
+    energyPerQuery: 2.33,
+    provider: 'openai',
+    sites: ['chatgpt.com', 'chat.openai.com', 'openai.com'],
+    detectionPatterns: [/gpt-?5/i, /chatgpt/i],
     category: 'large-multimodal',
   },
-  'gpt-3.5-turbo': {
-    name: 'GPT-3.5 Turbo',
-    energyPerQuery: 0.0021,
-    sites: ['chat.openai.com', 'chatgpt.com'],
-    detectionPatterns: [/gpt-?3\.?5/i, /turbo/i],
-    category: 'medium-language',
+  'gpt-5-thinking': {
+    name: 'GPT-5 Thinking',
+    energyPerQuery: 17.15,
+    provider: 'openai',
+    sites: ['chatgpt.com', 'chat.openai.com'],
+    detectionPatterns: [/thinking/i, /reasoning/i],
+    category: 'reasoning',
   },
-  'claude-3-sonnet': {
-    name: 'Claude 3 Sonnet',
-    energyPerQuery: 0.0051,
+  'gpt-4o': {
+    name: 'GPT-4o',
+    energyPerQuery: 1.215,
+    provider: 'openai',
+    sites: ['chatgpt.com', 'chat.openai.com', 'openai.com'],
+    detectionPatterns: [/gpt-?4o/i],
+    category: 'large-multimodal',
+  },
+  'gpt-4.1': {
+    name: 'GPT-4.1',
+    energyPerQuery: 3.382,
+    provider: 'openai',
+    sites: ['chatgpt.com', 'chat.openai.com', 'openai.com'],
+    detectionPatterns: [/gpt-?4\.1/i],
+    category: 'large-multimodal',
+  },
+  'o3': {
+    name: 'OpenAI o3',
+    energyPerQuery: 5.15,
+    provider: 'openai',
+    sites: ['chatgpt.com', 'chat.openai.com'],
+    detectionPatterns: [/\bo3\b/i],
+    category: 'reasoning',
+  },
+  'claude-sonnet': {
+    name: 'Claude Sonnet',
+    energyPerQuery: 2.99,
+    provider: 'anthropic',
     sites: ['claude.ai', 'anthropic.com'],
-    detectionPatterns: [/claude/i, /anthropic/i],
+    detectionPatterns: [/sonnet/i, /claude/i],
     category: 'large-language',
   },
-  'claude-3-haiku': {
-    name: 'Claude 3 Haiku',
-    energyPerQuery: 0.0015,
+  'claude-haiku': {
+    name: 'Claude Haiku',
+    energyPerQuery: 0.8,
+    provider: 'anthropic',
     sites: ['claude.ai'],
     detectionPatterns: [/haiku/i],
     category: 'small-language',
   },
-  'gemini-pro': {
-    name: 'Gemini Pro',
-    energyPerQuery: 0.0033,
-    sites: ['gemini.google.com', 'bard.google.com', 'ai.google.dev', 'makersuite.google.com'],
-    detectionPatterns: [/gemini/i, /bard/i, /ai\.google/i],
+  'gemini': {
+    name: 'Gemini',
+    energyPerQuery: 2.0, // no benchmark entry; mid estimate against the OpenAI row
+    provider: 'google',
+    sites: ['gemini.google.com', 'ai.google.dev'],
+    detectionPatterns: [/gemini/i],
     category: 'large-multimodal',
   },
-  'palm-2': {
-    name: 'PaLM 2',
-    energyPerQuery: 0.0039,
-    sites: ['makersuite.google.com', 'ai.google.dev'],
-    detectionPatterns: [/palm.*2/i, /makersuite/i],
+  'deepseek-r1': {
+    name: 'DeepSeek-R1',
+    energyPerQuery: 23.8,
+    provider: 'deepseek',
+    sites: ['deepseek.com', 'chat.deepseek.com'],
+    detectionPatterns: [/r1/i, /reason/i],
+    category: 'reasoning',
+  },
+  'deepseek-v3': {
+    name: 'DeepSeek-V3',
+    energyPerQuery: 13.2,
+    provider: 'deepseek',
+    sites: ['deepseek.com', 'chat.deepseek.com'],
+    detectionPatterns: [/deepseek/i, /v3/i],
     category: 'large-language',
   },
-  'stability-ai': {
-    name: 'Stable Diffusion',
-    energyPerQuery: 0.0067,
-    sites: ['stability.ai', 'dreamstudio.ai'],
-    detectionPatterns: [/stable.*diffusion/i, /stability.*ai/i, /dreamstudio/i],
-    category: 'image-generation',
-  },
-  'mistral-7b': {
-    name: 'Mistral 7B',
-    energyPerQuery: 0.0018,
-    sites: ['mistral.ai'],
-    detectionPatterns: [/mistral.*7b/i, /mistral\.ai/i],
-    category: 'small-language',
-  },
-  'cohere-command': {
-    name: 'Cohere Command',
-    energyPerQuery: 0.0024,
-    sites: ['cohere.com', 'cohere.ai'],
-    detectionPatterns: [/cohere/i, /command/i],
-    category: 'medium-language',
-  },
-  'llama-2-70b': {
-    name: 'Llama 2 70B',
-    energyPerQuery: 0.0048,
-    sites: ['huggingface.co', 'together.ai', 'replicate.com'],
-    detectionPatterns: [/llama.*2.*70b/i, /meta.*llama/i],
+  'llama-3.1-70b': {
+    name: 'Llama 3.1 70B',
+    energyPerQuery: 4.5,
+    provider: 'meta',
+    sites: ['huggingface.co', 'together.ai', 'replicate.com', 'meta.ai'],
+    detectionPatterns: [/llama/i, /meta.*llama/i],
     category: 'large-language',
   },
 };
@@ -84,65 +125,81 @@ const AI_MODEL_DATABASE = {
 
 const AI_SITE_PATTERNS = {
   openai: {
-    domains: ['chat.openai.com', 'chatgpt.com', 'openai.com', 'platform.openai.com'],
-    defaultModel: 'gpt-4o',
+    domains: ['chatgpt.com', 'chat.openai.com', 'openai.com', 'platform.openai.com'],
+    // GPT-5 is the current default model on chatgpt.com.
+    defaultModel: 'gpt-5',
     pathPatterns: [
-      { pattern: /gpt-3\.5/i, model: 'gpt-3.5-turbo' },
-      { pattern: /gpt-4/i,    model: 'gpt-4o' },
+      { pattern: /gpt-?4o/i,  model: 'gpt-4o' },
+      { pattern: /gpt-?4\.1/i, model: 'gpt-4.1' },
+      { pattern: /\bo3\b/i,   model: 'o3' },
+      { pattern: /thinking/i, model: 'gpt-5-thinking' },
     ],
   },
   anthropic: {
     domains: ['claude.ai', 'anthropic.com'],
-    defaultModel: 'claude-3-sonnet',
+    defaultModel: 'claude-sonnet',
     pathPatterns: [
-      { pattern: /haiku/i,  model: 'claude-3-haiku' },
-      { pattern: /sonnet/i, model: 'claude-3-sonnet' },
+      { pattern: /haiku/i,  model: 'claude-haiku' },
+      { pattern: /sonnet/i, model: 'claude-sonnet' },
     ],
   },
   google: {
-    domains: ['gemini.google.com', 'bard.google.com', 'ai.google.dev', 'makersuite.google.com'],
-    defaultModel: 'gemini-pro',
+    domains: ['gemini.google.com', 'ai.google.dev'],
+    defaultModel: 'gemini',
+    pathPatterns: [],
+  },
+  deepseek: {
+    domains: ['deepseek.com', 'chat.deepseek.com'],
+    defaultModel: 'deepseek-v3',
     pathPatterns: [
-      { pattern: /palm/i,   model: 'palm-2' },
-      { pattern: /gemini/i, model: 'gemini-pro' },
-      { pattern: /bard/i,   model: 'gemini-pro' },
+      { pattern: /r1|reason/i, model: 'deepseek-r1' },
     ],
   },
-  stability: {
-    domains: ['stability.ai', 'dreamstudio.ai'],
-    defaultModel: 'stability-ai',
+  grok: {
+    domains: ['grok.com', 'x.ai'],
+    defaultModel: 'llama-3.1-70b', // no benchmark entry; large-model proxy
     pathPatterns: [],
   },
-  mistral: {
-    domains: ['mistral.ai'],
-    defaultModel: 'mistral-7b',
+  perplexity: {
+    domains: ['perplexity.ai'],
+    defaultModel: 'llama-3.1-70b',
     pathPatterns: [],
   },
-  cohere: {
-    domains: ['cohere.com', 'cohere.ai'],
-    defaultModel: 'cohere-command',
+  copilot: {
+    domains: ['copilot.microsoft.com'],
+    defaultModel: 'gpt-5', // Copilot runs on OpenAI models via Azure
+    pathPatterns: [],
+  },
+  meta: {
+    domains: ['meta.ai'],
+    defaultModel: 'llama-3.1-70b',
     pathPatterns: [],
   },
   huggingface: {
     domains: ['huggingface.co'],
-    defaultModel: 'llama-2-70b',
-    pathPatterns: [
-      { pattern: /stable.*diffusion/i, model: 'stability-ai' },
-      { pattern: /mistral.*7b/i,       model: 'mistral-7b' },
-      { pattern: /llama.*2.*70b/i,     model: 'llama-2-70b' },
-    ],
+    defaultModel: 'llama-3.1-70b',
+    pathPatterns: [],
   },
   together: {
     domains: ['together.ai'],
-    defaultModel: 'llama-2-70b',
+    defaultModel: 'llama-3.1-70b',
     pathPatterns: [],
   },
   replicate: {
     domains: ['replicate.com'],
-    defaultModel: 'llama-2-70b',
+    defaultModel: 'llama-3.1-70b',
     pathPatterns: [],
   },
 };
+
+// ── Query cadence ──────────────────────────────────────────────────────────
+// One query per 3 minutes of active tab time. Everything downstream — watts,
+// water, carbon — amortizes a single query over this window, so these three
+// constants must stay in agreement.
+
+const QUERY_CADENCE_MS  = 3 * 60 * 1000;
+const QUERY_CADENCE_HRS = QUERY_CADENCE_MS / 3600000;  // 0.05 hr
+const QUERIES_PER_HR    = 1 / QUERY_CADENCE_HRS;       // 20 queries/hr
 
 // ── AIEnergyManager ────────────────────────────────────────────────────────
 
@@ -206,7 +263,7 @@ class AIEnergyManager {
   estimateQueryCount(durationMs) {
     // Minimum 1 query: once an AI site is detected the user has already
     // made at least one request. After that, one more query per 3 minutes.
-    const queries = 1 + Math.floor(durationMs / (3 * 60 * 1000));
+    const queries = 1 + Math.floor(durationMs / QUERY_CADENCE_MS);
     return Math.min(queries, 20);
   }
 
@@ -227,18 +284,53 @@ class AIEnergyManager {
 
   /**
    * Convert per-query energy to an average watt value.
-   * Uses a fixed 30-second query window rather than raw session duration,
-   * so the number stays stable and doesn't spike on tab open or decay to
+   * Amortizes one query over the same 3-minute cadence estimateQueryCount
+   * assumes, so watts and query count describe the same user behaviour. Using
+   * raw session duration instead would spike on tab open and decay to
    * near-zero after a long session.
    *
-   * @param {number} energyWh  - energy for the most recent query (Wh)
+   * @param {number} energyWh  - energy for one query (Wh)
    * @param {number} _durationMs - unused, kept for signature compatibility
    * @returns {number} watts
    */
   energyToWatts(energyWh, _durationMs) {
-    // Amortize one query's energy over 30 seconds (a typical inference window).
-    const QUERY_WINDOW_HRS = 30 / 3600;
-    return Math.max(0, energyWh / QUERY_WINDOW_HRS);
+    return Math.max(0, energyWh / QUERY_CADENCE_HRS);
+  }
+
+  /**
+   * Per-query water and carbon for a model, using the paper's formulas:
+   *   water_L = (E_kWh / PUE) x WUE_site + E_kWh x WUE_source
+   *   co2_g   = E_kWh x CIF x 1000
+   *
+   * @param {string} modelKey
+   * @returns {{ waterLPerQuery: number, co2GPerQuery: number }}
+   */
+  perQueryFootprint(modelKey) {
+    const model = AI_MODEL_DATABASE[modelKey];
+    if (!model) return { waterLPerQuery: 0, co2GPerQuery: 0 };
+
+    const infra = AI_PROVIDER_INFRA[model.provider] ?? AI_PROVIDER_INFRA[DEFAULT_PROVIDER];
+    const energyKWh = model.energyPerQuery / 1000;
+
+    return {
+      waterLPerQuery:
+        (energyKWh / infra.pue) * infra.wueSite + energyKWh * infra.wueSource,
+      co2GPerQuery: energyKWh * infra.cif * 1000,
+    };
+  }
+
+  /**
+   * Hourly water and carbon for a model at the assumed query cadence.
+   *
+   * @param {string} modelKey
+   * @returns {{ waterLPerHr: number, co2GPerHr: number }}
+   */
+  hourlyFootprint(modelKey) {
+    const { waterLPerQuery, co2GPerQuery } = this.perQueryFootprint(modelKey);
+    return {
+      waterLPerHr: waterLPerQuery * QUERIES_PER_HR,
+      co2GPerHr:   co2GPerQuery  * QUERIES_PER_HR,
+    };
   }
 
   /**

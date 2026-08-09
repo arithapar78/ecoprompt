@@ -26,29 +26,43 @@ const aiManager = new AIEnergyManager();
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** Hostname without a leading "www.", used to label non-AI sites in history. */
+function siteLabelFor(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch (_) {
+    return null;
+  }
+}
+
 /**
- * Look up the active tab's URL and title, run AI detection, and return AI
- * watts for that tab. Returns 0 if the site is not a known AI site.
+ * Look up the tab's URL and title, run AI detection, and return the backend
+ * energy/water/carbon for that tab. Returns zeros (and the bare hostname as
+ * `site`) if it is not a known AI site.
  *
  * @param {number} tabId
- * @returns {Promise<{ aiWatts: number, modelKey: string|null, modelName: string|null }>}
+ * @returns {Promise<{ aiWatts: number, aiWaterLPerHr: number, aiCo2GPerHr: number,
+ *                     modelKey: string|null, modelName: string|null,
+ *                     platform: string|null, site: string|null }>}
  */
 async function resolveAIWatts(tabId) {
+  const none = {
+    aiWatts: 0, aiWaterLPerHr: 0, aiCo2GPerHr: 0,
+    modelKey: null, modelName: null, platform: null, site: null,
+  };
+
   let tab;
   try {
     tab = await chrome.tabs.get(tabId);
   } catch (_) {
-    return { aiWatts: 0, modelKey: null, modelName: null };
+    return none;
   }
+
+  const site = siteLabelFor(tab.url);
 
   // Run detection using URL + page title (no DOM access needed)
   const detection = aiManager.detectAIModel(tab.url, tab.title);
-  if (!detection) {
-    console.log('[PowerTracker] No AI site detected for tab', tabId, tab.url);
-    return { aiWatts: 0, modelKey: null, modelName: null };
-  }
-
-  console.log('[PowerTracker] AI detected:', detection.platform, detection.modelKey);
+  if (!detection) return { ...none, site };
 
   // Duration since the tab was first seen in this session
   const startTime  = tabStartTime[tabId] || Date.now();
@@ -60,7 +74,9 @@ async function resolveAIWatts(tabId) {
   const perQueryWh = energyWh / Math.max(1, queries);
   const aiWatts = aiManager.energyToWatts(perQueryWh, durationMs);
 
-  console.log('[PowerTracker] queries:', queries, '| energyWh:', energyWh.toFixed(6), '| aiWatts:', aiWatts.toFixed(4));
+  // Water and carbon come from the same per-query figure, scaled by the
+  // provider's datacenter multipliers.
+  const { waterLPerHr, co2GPerHr } = aiManager.hourlyFootprint(detection.modelKey);
 
   aiManager.updateTabUsage(tabId, {
     modelKey: detection.modelKey,
@@ -70,9 +86,14 @@ async function resolveAIWatts(tabId) {
 
   return {
     aiWatts,
+    aiWaterLPerHr: waterLPerHr,
+    aiCo2GPerHr:   co2GPerHr,
     modelKey:  detection.modelKey,
     modelName: detection.model?.name ?? null,
     platform:  detection.platform,
+    // Prefer the platform name ("openai") over the raw host for AI sites, so
+    // chatgpt.com and chat.openai.com share one series in the history chart.
+    site: detection.platform,
   };
 }
 
@@ -92,17 +113,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Compute frontend watts, then fold in AI backend watts asynchronously.
     const frontendWatts = estimateWatts(message.metrics);
 
-    resolveAIWatts(tabId).then(({ aiWatts, modelKey, modelName, platform }) => {
-      const totalWatts = frontendWatts + aiWatts;
+    resolveAIWatts(tabId).then((ai) => {
+      const totalWatts = frontendWatts + ai.aiWatts;
 
-      console.log('[PowerTracker] frontendWatts:', frontendWatts.toFixed(4), '| aiWatts:', aiWatts.toFixed(4), '| totalWatts:', totalWatts.toFixed(4));
-
-      // Cache AI info and total for GET_METRICS requests
-      tabAI[tabId] = { aiWatts, modelKey, modelName, platform };
+      // Cache for GET_METRICS on every tab, so the popup works wherever it opens.
+      tabAI[tabId] = {
+        aiWatts:       ai.aiWatts,
+        aiWaterLPerHr: ai.aiWaterLPerHr,
+        aiCo2GPerHr:   ai.aiCo2GPerHr,
+        frontendWatts,
+        modelKey:  ai.modelKey,
+        modelName: ai.modelName,
+        platform:  ai.platform,
+      };
       tabTotalWatts[tabId] = totalWatts;
 
-      // Persist total (frontend + backend) to history, tagged with platform
-      appendWatts(totalWatts, platform ?? null);
+      // Persist only the tab the user is actually looking at. Writing history
+      // for every open tab would interleave unrelated sites into one series and
+      // do a read-modify-write of the whole array per tab per 10 s.
+      if (sender.tab.active) {
+        chrome.windows.get(sender.tab.windowId)
+          .then((win) => {
+            if (win.focused) appendWatts(totalWatts, ai.site);
+          })
+          .catch(() => {});
+      }
     });
 
     sendResponse({ ok: true });
@@ -120,6 +155,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_HISTORY') {
     readHistory().then((history) => sendResponse({ history }));
     return true; // keep channel open for async response
+  }
+
+  // Options page requests the daily rollup (Week view).
+  if (message.type === 'GET_DAILY') {
+    readDaily().then((daily) => sendResponse({ daily }));
+    return true;
   }
 
   // Options page requests history to be cleared.

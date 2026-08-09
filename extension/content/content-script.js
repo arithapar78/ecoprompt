@@ -5,8 +5,12 @@
 //     using a single cheap property (document.all.length) instead of querySelectorAll.
 //   - MutationObserver only watches childList (structural changes), not attributes,
 //     to avoid firing on every class/style tweak in reactive frameworks.
-//   - Element-type flags (video, canvas, WebGL) are resolved once at startup and
-//     updated only when structure actually changes, not on every timer tick.
+//   - Element-type flags (video, canvas) are resolved once at startup and refreshed
+//     only after structural DOM changes, throttled to once per 5 s and deferred to
+//     requestIdleCallback so the check never competes with the page's own work.
+//   - getContext() is NEVER called on a page-owned canvas: a canvas's context type
+//     is permanent, so probing for WebGL would permanently deny the page its own
+//     getContext('2d'). Canvas size is used as a read-only proxy instead.
 //   - Network bytes accumulate passively via PerformanceObserver — no active polling.
 //   - All sends are fire-and-forget; errors are silently ignored.
 
@@ -26,12 +30,35 @@
     scheduleElementCheck();
   });
 
-  mutationObserver.observe(document.documentElement, {
+  const OBSERVER_OPTS = {
     childList: true,
     subtree: true,
     // attributes: false — intentionally omitted; cuts callback volume dramatically
     //   on reactive frameworks that update dozens of attributes per render cycle.
+  };
+
+  let observing = false;
+
+  function startObserving() {
+    if (observing) return;
+    mutationObserver.observe(document.documentElement, OBSERVER_OPTS);
+    observing = true;
+  }
+
+  function stopObserving() {
+    if (!observing) return;
+    mutationObserver.disconnect();
+    observing = false;
+  }
+
+  // Background tabs still fire mutations (timers, streamed responses) but nobody
+  // is looking at the reading, so drop the observer entirely while hidden.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') stopObserving();
+    else startObserving();
   });
+
+  if (document.visibilityState !== 'hidden') startObserving();
 
   // Flush mutation count once per second. Simple counter reset — no iteration.
   setInterval(() => {
@@ -40,44 +67,53 @@
   }, 1000);
 
   // ── Element-type flags ────────────────────────────────────────────────────
-  // Resolved once at startup, then refreshed only after structural DOM changes.
-  // querySelector is O(n) but called at most once per mutation batch, not per tick.
+  // Resolved once at startup, then refreshed after structural DOM changes — but
+  // at most once per 5 s, and only while the browser is idle. querySelector is a
+  // full tree walk on pages that have no <video>/<canvas>, so on a streaming page
+  // (ChatGPT tokens, infinite feeds) an unthrottled check is constant jank.
+
+  const ELEMENT_CHECK_INTERVAL_MS = 5000;
+
+  // A canvas at least this large implies real rendering work rather than a
+  // 1×1 tracking pixel or an offscreen sprite sheet.
+  const LARGE_CANVAS_W = 300;
+  const LARGE_CANVAS_H = 150;
 
   let hasVideo = false;
   let hasCanvas = false;
-  let hasWebGL = false;
+  let hasLargeCanvas = false;
 
-  let elementCheckScheduled = false;
+  let elementCheckTimer = null;
+
+  const whenIdle =
+    typeof requestIdleCallback === 'function'
+      ? (fn) => requestIdleCallback(fn)
+      : (fn) => setTimeout(fn, 500);
 
   function scheduleElementCheck() {
-    if (elementCheckScheduled) return;
-    elementCheckScheduled = true;
-    // Defer to next microtask so multiple mutations in one batch cost one check.
-    Promise.resolve().then(updateElementFlags);
+    // Trailing-edge throttle: the first mutation after a quiet period arms the
+    // timer, and every mutation in the next 5 s is absorbed by it for free.
+    if (elementCheckTimer !== null) return;
+    elementCheckTimer = setTimeout(() => {
+      elementCheckTimer = null;
+      whenIdle(updateElementFlags);
+    }, ELEMENT_CHECK_INTERVAL_MS);
   }
 
   function updateElementFlags() {
-    elementCheckScheduled = false;
-
     // Video: only care if one is actually playing.
     const videoEl = document.querySelector('video');
     hasVideo = videoEl !== null && !videoEl.paused;
 
-    // Canvas: presence is enough to flag potential 2D rendering work.
+    // Canvas: presence flags potential rendering work. Size stands in for how
+    // much — reading width/height is safe, whereas getContext() would permanently
+    // fix the canvas's context type and break the page's own rendering.
     const canvasEl = document.querySelector('canvas');
     hasCanvas = canvasEl !== null;
-
-    // WebGL: check only the first canvas to avoid iterating all of them.
-    // getContext() on an existing canvas is cheap; creating a new context is not.
-    if (canvasEl) {
-      try {
-        hasWebGL = !!(canvasEl.getContext('webgl') || canvasEl.getContext('webgl2'));
-      } catch (_) {
-        hasWebGL = false;
-      }
-    } else {
-      hasWebGL = false;
-    }
+    hasLargeCanvas =
+      canvasEl !== null &&
+      canvasEl.width >= LARGE_CANVAS_W &&
+      canvasEl.height >= LARGE_CANVAS_H;
   }
 
   // Run once at startup.
@@ -122,7 +158,7 @@
       // Element-type flags maintained by the mutation-driven checker above.
       hasVideo,
       hasCanvas,
-      hasWebGL,
+      hasLargeCanvas,
     };
   }
 

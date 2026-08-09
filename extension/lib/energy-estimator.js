@@ -14,7 +14,7 @@
  *   transferKB: number,      // network bytes transferred (KB)
  *   hasVideo: boolean,       // true if a <video> element is present and playing
  *   hasCanvas: boolean,      // true if a <canvas> element is present
- *   hasWebGL: boolean        // true if a WebGL context is active
+ *   hasLargeCanvas: boolean  // true if that canvas is >= 300x150 px
  * }} metrics
  * @returns {number} estimated watts, rounded to 2 decimal places
  */
@@ -25,7 +25,7 @@ function estimateWatts(metrics) {
     transferKB = 0,
     hasVideo = false,
     hasCanvas = false,
-    hasWebGL = false,
+    hasLargeCanvas = false,
   } = metrics;
 
   // Baseline cost every page pays just for being loaded
@@ -36,8 +36,11 @@ function estimateWatts(metrics) {
   const domCost = (domNodes / 10000) * 1.0;
 
   // Mutation rate: frequent DOM changes drive reflows and repaints.
-  // 10 mutations/sec ≈ +0.15 W.
-  const mutationCost = (mutationsPerSec / 10) * 0.15;
+  // 10 mutations/sec ≈ +0.15 W. Capped at 200/sec so a token-streaming page
+  // doesn't swamp every other term (200 → +3.0 W ceiling).
+  const MAX_MUTATIONS_PER_SEC = 200;
+  const cappedMutations = Math.min(mutationsPerSec, MAX_MUTATIONS_PER_SEC);
+  const mutationCost = (cappedMutations / 10) * 0.15;
 
   // Network: transferring data wakes up radios and keeps CPUs busy.
   // 1 MB transferred ≈ +0.20 W.
@@ -46,13 +49,12 @@ function estimateWatts(metrics) {
   // Video playback is the largest single consumer on most pages.
   const videoCost = hasVideo ? 1.5 : 0;
 
-  // Canvas (2D) implies continuous rendering work.
-  const canvasCost = hasCanvas ? 0.4 : 0;
+  // Canvas implies rendering work; a large canvas implies GPU-backed rendering.
+  // Size is the proxy for the old WebGL probe, whose +0.8 W is folded in here —
+  // probing getContext() would break the page's own canvas (see content script).
+  const canvasCost = hasLargeCanvas ? 0.8 : hasCanvas ? 0.4 : 0;
 
-  // WebGL implies GPU involvement.
-  const webglCost = hasWebGL ? 0.8 : 0;
-
-  const total = BASE + domCost + mutationCost + networkCost + videoCost + canvasCost + webglCost;
+  const total = BASE + domCost + mutationCost + networkCost + videoCost + canvasCost;
 
   return Math.round(total * 100) / 100;
 }

@@ -30,6 +30,8 @@
     <div id="tab-history" class="tab-panel active">
 
       <div class="panel-actions">
+        <button id="range-day-btn" class="refresh-btn active">Day</button>
+        <button id="range-week-btn" class="refresh-btn">Week</button>
         <button id="refresh-btn" class="refresh-btn">Refresh</button>
         <button id="clear-btn" class="danger-btn">Clear History</button>
       </div>
@@ -37,26 +39,26 @@
       <!-- Summary stats -->
       <section class="stats-row">
         <div class="stat-card">
-          <div class="stat-label">Current</div>
+          <div class="stat-label" id="stat-current-label">Current</div>
           <div class="stat-value" id="stat-current">—</div>
-          <div class="stat-unit">W</div>
+          <div class="stat-unit" id="stat-current-unit">W</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Average</div>
+          <div class="stat-label" id="stat-avg-label">Average</div>
           <div class="stat-value" id="stat-avg">—</div>
-          <div class="stat-unit">W</div>
+          <div class="stat-unit" id="stat-avg-unit">W</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Peak</div>
+          <div class="stat-label" id="stat-peak-label">Peak</div>
           <div class="stat-value" id="stat-peak">—</div>
-          <div class="stat-unit">W</div>
+          <div class="stat-unit" id="stat-peak-unit">W</div>
         </div>
       </section>
 
       <!-- Line chart -->
       <section class="chart-section">
         <div class="chart-header">
-          <span class="chart-range">Last 24 Hours</span>
+          <span class="chart-range" id="chart-range">Live samples</span>
         </div>
         <canvas id="chart" width="640" height="240"></canvas>
         <div id="empty-msg" class="empty-msg hidden">No data yet. Open some pages.</div>
