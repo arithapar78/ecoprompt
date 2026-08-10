@@ -30,8 +30,25 @@
     <div id="tab-history" class="tab-panel active">
 
       <div class="panel-actions">
-        <button id="range-day-btn" class="refresh-btn active">Day</button>
-        <button id="range-week-btn" class="refresh-btn">Week</button>
+        <div class="seg-group" role="tablist" aria-label="Chart type">
+          <button id="type-line-btn" class="seg-btn active" role="tab"
+                  aria-selected="true"  aria-controls="chart" data-type="line" tabindex="0">Line</button>
+          <button id="type-bar-btn"  class="seg-btn" role="tab"
+                  aria-selected="false" aria-controls="chart" data-type="bar"  tabindex="-1">Bar</button>
+          <button id="type-pie-btn"  class="seg-btn" role="tab"
+                  aria-selected="false" aria-controls="chart" data-type="pie"  tabindex="-1">Pie</button>
+        </div>
+        <div class="seg-group" role="tablist" aria-label="Time range">
+          <button id="range-day-btn"  class="seg-btn active" role="tab"
+                  aria-selected="true"  aria-controls="chart" data-range="day"  tabindex="0">Day</button>
+          <button id="range-week-btn" class="seg-btn" role="tab"
+                  aria-selected="false" aria-controls="chart" data-range="week" tabindex="-1">Week</button>
+        </div>
+        <label class="log-toggle" id="log-toggle-wrap">
+          <input type="checkbox" id="log-toggle" />
+          <span>Log scale</span>
+        </label>
+        <span class="spacer"></span>
         <button id="refresh-btn" class="refresh-btn">Refresh</button>
         <button id="clear-btn" class="danger-btn">Clear History</button>
       </div>
@@ -55,13 +72,22 @@
         </div>
       </section>
 
-      <!-- Line chart -->
+      <!-- Chart -->
       <section class="chart-section">
         <div class="chart-header">
           <span class="chart-range" id="chart-range">Live samples</span>
+          <span class="scale-badge hidden" id="scale-badge">log scale</span>
         </div>
-        <canvas id="chart" width="640" height="240"></canvas>
+
+        <div class="chart-wrap" id="chart-wrap">
+          <canvas id="chart" width="640" height="240" role="img"
+                  aria-label="Energy usage chart"></canvas>
+          <div id="chart-tooltip" class="chart-tooltip hidden" role="status" aria-live="polite"></div>
+        </div>
+
         <div id="empty-msg" class="empty-msg hidden">No data yet. Open some pages.</div>
+        <div id="chart-legend" class="chart-legend"></div>
+        <div id="chart-note" class="chart-note hidden"></div>
       </section>
 
     </div>
@@ -229,6 +255,7 @@
 
   </div>
 
+  <script src="chart.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

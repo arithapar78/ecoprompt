@@ -152,10 +152,69 @@ h1 {
 /* ── Panel actions (history tab) ──────────────────────────────────────────── */
 .panel-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
 }
+
+.panel-actions .spacer { flex: 1; }
+
+/* ── Segmented toggles (chart type / range) ───────────────────────────────── */
+.seg-group {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.seg-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 13px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  border-radius: 5px;
+  letter-spacing: 0.01em;
+  transition: background var(--transition), color var(--transition);
+}
+
+.seg-btn:hover { color: var(--text-1); }
+
+.seg-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(62,207,142,0.28);
+}
+
+body.light .seg-btn.active {
+  box-shadow: inset 0 0 0 1px rgba(39,169,108,0.32);
+}
+
+.seg-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── Log-scale checkbox ───────────────────────────────────────────────────── */
+.log-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+  padding: 0 2px;
+}
+
+.log-toggle input { cursor: pointer; accent-color: var(--accent); margin: 0; }
+.log-toggle:hover { color: var(--text-1); }
 
 /* ── Danger button ────────────────────────────────────────────────────────── */
 .danger-btn {
@@ -310,6 +369,137 @@ canvas {
   width: 100%;
   height: 240px;
   border-radius: var(--radius-sm);
+}
+
+/* Positioning context for the tooltip; also the ResizeObserver target. */
+.chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.chart-wrap.hidden { display: none; }
+
+/* ── Scale badge ──────────────────────────────────────────────────────────── */
+.scale-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  padding: 3px 8px;
+  border-radius: 20px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(62,207,142,0.3);
+}
+
+body.light .scale-badge { border-color: rgba(39,169,108,0.35); }
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.chart-tooltip .tt-site {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.chart-tooltip .tt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.chart-tooltip .tt-val {
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip .tt-ts {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Legend (HTML, wraps — never overflows the canvas) ────────────────────── */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 14px;
+}
+
+.chart-legend:empty { display: none; }
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition),
+              border-color var(--transition), opacity var(--transition);
+}
+
+.legend-item:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-1);
+}
+
+.legend-item.off { opacity: 0.4; text-decoration: line-through; }
+
+.legend-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* ── Chart footnote ───────────────────────────────────────────────────────── */
+.chart-note {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* ── Stale marker on the Current stat ─────────────────────────────────────── */
+.stat-unit.stale {
+  color: var(--red);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
 }
 
 /* ── Empty state ──────────────────────────────────────────────────────────── */
