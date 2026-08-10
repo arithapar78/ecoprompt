@@ -8,11 +8,12 @@ let isDark = true;
 function applyTheme(dark) {
   isDark = dark;
   document.body.classList.toggle('light', !dark);
-  const icon = dark ? '🌙' : '☀️';
+  // Both moon and sun SVGs live in the button; CSS shows one per theme.
+  const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
   const t1 = document.getElementById('theme-toggle');
   const t2 = document.getElementById('theme-toggle-2');
-  if (t1) t1.textContent = icon;
-  if (t2) t2.textContent = icon;
+  if (t1) t1.title = label;
+  if (t2) t2.title = label;
 }
 
 function toggleTheme() {
@@ -31,8 +32,8 @@ document.getElementById('theme-toggle-2').addEventListener('click', toggleTheme)
 
 // ── Width resizing ─────────────────────────────────────────────────────────────
 
-const WIDTHS = [300, 380, 480, 580];
-let widthIdx = 1; // default: 380px
+const WIDTHS = [380, 460, 560, 640];
+let widthIdx = 1; // default: 460px
 
 function applyWidth() {
   document.body.style.width = WIDTHS[widthIdx] + 'px';

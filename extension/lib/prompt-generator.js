@@ -34,6 +34,7 @@ function _legacyRemoveFillers(text) {
 }
 
 function _legacyCleanup(text) {
+  text = text.replace(/(^|\s)['’](?:s|t|re|ll|d|m|ve)\b/gi, '$1');
   text = text.replace(/[ \t]{2,}/g, ' ');
   text = text.split('\n').map(l => l.trim()).join('\n');
   text = text.replace(/\n{3,}/g, '\n\n');
@@ -53,7 +54,6 @@ function optimizePrompt(text) {
 
   // Fallback: balanced-equivalent, no protection pass
   const minChars = GENERATOR_GUIDANCE.minLengthToOptimize;
-  const minRatio = GENERATOR_GUIDANCE.minRetainRatio;
   if (!text || text.length < minChars) return (text || '').trim();
 
   let result = text;
@@ -63,6 +63,7 @@ function optimizePrompt(text) {
   result = _legacyRemoveFillers(result);
   result = _legacyCleanup(result);
 
-  if (!result || result.length < text.length * minRatio) return text.trim();
+  // No retain-ratio revert — the only guard is never returning an empty string.
+  if (!result.trim()) return text.trim();
   return result;
 }
