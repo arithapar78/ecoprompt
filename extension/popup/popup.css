@@ -78,6 +78,13 @@ html, body {
   min-height: 580px;
 }
 
+/* The root tracks the body width so Chrome sizes the popup from the content
+   and no surplus strip appears on the right. */
+html {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   width: 460px;             /* popup.js steps this via WIDTHS; never transitioned */
   margin: 0;
@@ -89,7 +96,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.hidden { display: none; }
+/* Must beat `.view { display: flex }` — equal specificity would otherwise be
+   decided by source order and leave hidden views visible. */
+.hidden,
+.view.hidden { display: none !important; }
 
 /* ── View shell ─────────────────────────────────────────────────────────── */
 /* Chrome caps popups at 800×600, so the body never grows past 600px and the
@@ -111,7 +121,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
-  scrollbar-gutter: stable;   /* no scrollbar flash when switching views */
+  /* No `scrollbar-gutter: stable` here — it permanently reserves the scrollbar
+     strip, which reads as dead space on the right when content fits. */
 }
 
 /* ── Top bar ────────────────────────────────────────────────────────────── */
