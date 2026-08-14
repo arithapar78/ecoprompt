@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>EcoPrompt — Settings</title>
   <link rel="stylesheet" href="options.css" />
+  <link rel="stylesheet" href="../lib/optimizer-ui.css" />
 </head>
 <body>
 
@@ -21,12 +22,19 @@
 
     <!-- Tab nav -->
     <nav class="tab-nav">
+      <button class="tab-btn" data-tab="optimizer">Prompt Optimizer</button>
       <button class="tab-btn active" data-tab="history">Energy History</button>
       <button class="tab-btn" data-tab="accuracy">Accuracy Validation</button>
       <button class="tab-btn" data-tab="about">About</button>
     </nav>
 
     <!-- ── Tab: History ──────────────────────────────────────────────────── -->
+    <!-- Optimizer UI is rendered by lib/optimizer-ui.js — the same module the
+         popup mounts, so the two surfaces cannot drift apart. -->
+    <div id="tab-optimizer" class="tab-panel hidden">
+      <div id="optimizer-mount"></div>
+    </div>
+
     <div id="tab-history" class="tab-panel active">
 
       <div class="panel-actions">
@@ -255,6 +263,15 @@
 
   </div>
 
+  <!-- Script order matters and there is no bundler. The optimizer chain must
+       load before options.js so the tab can mount it. -->
+  <script src="../lib/prompt-rules-db.js"></script>
+  <script src="../lib/token-counter.js"></script>
+  <script src="../lib/prompt-optimizer.js"></script>
+  <script src="../lib/prompt-generator.js"></script>
+  <script src="../lib/api.js"></script>
+  <script src="../lib/analytics-tracker.js"></script>
+  <script src="../lib/optimizer-ui.js"></script>
   <script src="chart.js"></script>
   <script src="options.js"></script>
 </body>

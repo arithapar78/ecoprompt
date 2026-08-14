@@ -600,3 +600,48 @@ textarea#original-prompt:focus {
 
 .view-body::-webkit-scrollbar-track,
 .output-text::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Full-page link ──────────────────────────────────────────────────────── */
+
+.fullpage-row {
+  margin: var(--s3) 0 0;
+  text-align: center;
+}
+
+.fullpage-link {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  text-decoration: none;
+}
+
+.fullpage-link:hover { color: var(--accent); text-decoration: underline; }
+
+.fullpage-link:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── optimizer-ui bridge ──────────────────────────────────────────────────
+   Maps this sheet's tokens onto the --eco-* names lib/optimizer-ui.css uses.
+   Declared on `body` (not :root) so it resolves AFTER body.light has swapped
+   the underlying tokens — the aliases then flip with the theme for free.
+   optimizer-ui.css must never hardcode a colour; add it here instead. */
+
+body {
+  --eco-surface:     var(--surface);
+  --eco-surface-2:   var(--surface-2);
+  --eco-border:      var(--border);
+  --eco-text-1:      var(--text);
+  --eco-text-2:      var(--text-dim);
+  --eco-text-3:      var(--text-faint);
+  --eco-accent:      var(--accent);
+  --eco-accent-ink:  var(--accent-ink);
+  --eco-accent-ring: var(--accent-ring);
+  --eco-radius:      var(--radius);
+  --eco-radius-sm:   var(--radius-sm);
+  --eco-fs-label:    var(--fs-label);
+  --eco-fs-body:     var(--fs-body);
+  --eco-gap:         var(--s3);
+  --eco-pad:         var(--s4);
+}

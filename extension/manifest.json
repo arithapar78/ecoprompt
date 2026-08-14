@@ -7,7 +7,9 @@
   "permissions": [
     "activeTab",
     "tabs",
-    "storage"
+    "storage",
+    "alarms",
+    "scripting"
   ],
 
   "host_permissions": [
@@ -20,10 +22,19 @@
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "id": "eco-metrics",
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": [
+        "https://chrome.google.com/webstore/*",
+        "https://chromewebstore.google.com/*",
+        "https://accounts.google.com/*",
+        "https://*.stripe.com/*",
+        "https://checkout.stripe.com/*"
+      ],
       "js": ["content/content-script.js"],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": false,
+      "match_about_blank": false
     }
   ],
 

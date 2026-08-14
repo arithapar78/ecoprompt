@@ -48,16 +48,50 @@ document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
 // ── Tab navigation ──────────────────────────────────────────────────────────
 
+// The optimizer is mounted lazily on first activation and then reused — never
+// re-mounted on a tab switch (that would clear the user's draft) and never at
+// page load (the Settings page usually opens on History).
+let optimizerUI = null;
+
+function mountOptimizerTab() {
+  if (optimizerUI) return;
+  const mount = document.getElementById('optimizer-mount');
+  if (mount && window.EcoPromptOptimizerUI) {
+    optimizerUI = window.EcoPromptOptimizerUI.mount(mount, { variant: 'page' });
+  }
+}
+
+function activateTab(target, { updateHash = true } = {}) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${target}"]`);
+  const panel = document.getElementById('tab-' + target);
+  if (!btn || !panel) return;
+
+  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+  btn.classList.add('active');
+  panel.classList.remove('hidden');
+
+  if (target === 'history') loadAndRender();
+  if (target === 'optimizer') mountOptimizerTab();
+
+  if (updateHash) location.hash = target;
+}
+
 document.querySelectorAll('.tab-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.tab;
-    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + target).classList.remove('hidden');
-    if (target === 'history') loadAndRender();
-  });
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
 });
+
+// Deep linking: options.html#optimizer opens that tab directly. Also handles
+// the hash changing while the page is already open.
+function applyHash() {
+  const target = location.hash.replace(/^#/, '');
+  if (target && document.getElementById('tab-' + target)) {
+    activateTab(target, { updateHash: false });
+  }
+}
+
+window.addEventListener('hashchange', applyHash);
+applyHash();
 
 // ── Mock fixtures (dev only) ────────────────────────────────────────────────
 // Enabled only by an explicit ?mock=<scenario> on the options page URL, so it

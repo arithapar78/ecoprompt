@@ -1,0 +1,239 @@
+/* lib/optimizer-ui.css
+   Styles for the shared optimizer UI (lib/optimizer-ui.js), mounted in both the
+   popup and the Settings page.
+
+   NO HARDCODED COLOURS. Every colour is a var() so this sheet inherits whatever
+   palette the host page defines — popup.css and options.css use different
+   variable names, so both define the aliases this sheet consumes (see the
+   "optimizer-ui bridge" block in each). Adding a colour here means adding the
+   variable to BOTH host sheets, never a literal. */
+
+.eco-opt {
+  display: block;
+  color: var(--eco-text-1);
+  font-size: var(--eco-fs-body, 13px);
+}
+
+.eco-opt .hidden { display: none !important; }
+
+/* ── Layout ─────────────────────────────────────────────────────────────────
+   The ONLY thing variant changes. Behaviour, wording and numbers are identical. */
+
+.eco-opt-panes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--eco-gap, 12px);
+}
+
+.eco-opt--page .eco-opt-panes {
+  /* Side-by-side input/output on a wide Settings page. */
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 700px) {
+  .eco-opt--page .eco-opt-panes {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+
+.eco-opt-card {
+  background: var(--eco-surface);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--eco-radius, 12px);
+  padding: var(--eco-pad, 14px);
+}
+
+.eco-opt-label {
+  display: block;
+  font-size: var(--eco-fs-label, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--eco-text-2);
+  margin-bottom: 8px;
+}
+
+/* ── Input ──────────────────────────────────────────────────────────────── */
+
+.eco-opt-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 120px;
+  padding: 10px;
+  border-radius: var(--eco-radius-sm, 8px);
+  border: 1px solid var(--eco-border);
+  background: var(--eco-surface-2);
+  color: var(--eco-text-1);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.eco-opt--page .eco-opt-textarea { min-height: 220px; }
+
+.eco-opt-textarea:focus {
+  outline: 2px solid var(--eco-accent-ring);
+  outline-offset: 1px;
+  border-color: var(--eco-accent);
+}
+
+.eco-opt-textarea::placeholder { color: var(--eco-text-3); }
+
+.eco-opt-tokenrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  font-size: var(--eco-fs-label, 11px);
+  color: var(--eco-text-2);
+}
+
+.eco-opt-token-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--eco-text-1);
+  font-weight: 600;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.eco-opt-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--eco-radius-sm, 8px);
+  background: var(--eco-accent);
+  color: var(--eco-accent-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.eco-opt-btn:hover:not(:disabled) { filter: brightness(1.08); }
+
+.eco-opt-btn:focus-visible {
+  outline: 2px solid var(--eco-accent-ring);
+  outline-offset: 2px;
+}
+
+.eco-opt-btn:disabled { opacity: 0.6; cursor: default; }
+
+.eco-opt-btn.is-loading { opacity: 0.75; }
+
+.eco-opt-outhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.eco-opt-copy {
+  padding: 4px 10px;
+  border-radius: var(--eco-radius-sm, 8px);
+  border: 1px solid var(--eco-border);
+  background: var(--eco-surface-2);
+  color: var(--eco-text-1);
+  font: inherit;
+  font-size: var(--eco-fs-label, 11px);
+  cursor: pointer;
+}
+
+.eco-opt-copy:hover { border-color: var(--eco-accent); }
+
+.eco-opt-copy:focus-visible {
+  outline: 2px solid var(--eco-accent-ring);
+  outline-offset: 2px;
+}
+
+/* ── Output ─────────────────────────────────────────────────────────────── */
+
+.eco-opt-output {
+  margin: 10px 0 14px;
+  padding: 10px;
+  border-radius: var(--eco-radius-sm, 8px);
+  background: var(--eco-surface-2);
+  border: 1px solid var(--eco-border);
+  color: var(--eco-text-1);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* ── Metrics ────────────────────────────────────────────────────────────── */
+
+.eco-opt-statgrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 700px) {
+  .eco-opt--page .eco-opt-statgrid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.eco-opt-stat {
+  background: var(--eco-surface-2);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--eco-radius-sm, 8px);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.eco-opt-stat--wide { grid-column: 1 / -1; }
+
+.eco-opt-stat--accent { border-color: var(--eco-accent); }
+
+.eco-opt-stat-label {
+  font-size: var(--eco-fs-label, 11px);
+  color: var(--eco-text-2);
+}
+
+.eco-opt-stat-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--eco-text-1);
+}
+
+.eco-opt-stat--accent .eco-opt-stat-value { color: var(--eco-accent); }
+
+/* ── Savings list ───────────────────────────────────────────────────────── */
+
+.eco-opt-datalist {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.eco-opt-datarow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--eco-border);
+}
+
+.eco-opt-datarow:last-child { border-bottom: 0; }
+
+.eco-opt-datarow-label { color: var(--eco-text-2); }
+
+.eco-opt-datarow-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--eco-text-1);
+}
+
+.eco-opt-unit {
+  color: var(--eco-text-3);
+  font-weight: 400;
+  font-size: var(--eco-fs-label, 11px);
+}

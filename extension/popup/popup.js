@@ -55,6 +55,9 @@ const viewOptimizer = document.getElementById('view-optimizer');
 document.getElementById('open-optimizer-btn').addEventListener('click', () => {
   viewDashboard.classList.add('hidden');
   viewOptimizer.classList.remove('hidden');
+  // Mounted lazily on first switch, so opening the popup on the dashboard
+  // costs nothing. mountOptimizer() is defined further down.
+  mountOptimizer();
 });
 
 document.getElementById('open-history-btn').addEventListener('click', () => {
@@ -164,63 +167,25 @@ setInterval(refreshDashboard, 5000);
 })();
 
 // ── Prompt optimizer ───────────────────────────────────────────────────────────
+// All optimizer behaviour — input, token count, metrics, output, Copy, and the
+// backend event — lives in lib/optimizer-ui.js, which the Settings page mounts
+// too. Do not reimplement any of it here: two copies is exactly the drift this
+// module exists to prevent.
 
-// Live token counter while the user types
-const originalPromptEl = document.getElementById('original-prompt');
-const originalTokensEl = document.getElementById('original-tokens');
+let optimizerUI = null;
 
-originalPromptEl.addEventListener('input', () => {
-  const tokens = countTokens(originalPromptEl.value);
-  originalTokensEl.textContent = tokens;
-});
-
-// ── Optimize button ────────────────────────────────────────────────────────────
-
-document.getElementById('optimize-btn').addEventListener('click', async () => {
-  const original = originalPromptEl.value.trim();
-  if (!original) return;
-
-  const { optimized, stats } = window.EcoPromptOptimizer.getOptimizationStats(original);
-
-  // Display optimized text
-  document.getElementById('optimized-prompt').textContent = optimized;
-
-  // Token stats (kept for backwards compatibility with existing IDs)
-  document.getElementById('stat-original').textContent  = stats.originalTokens;
-  document.getElementById('stat-optimized').textContent = stats.optimizedTokens;
-  document.getElementById('stat-saved').textContent     = stats.tokensSaved;
-
-  // New word / reduction stats
-  document.getElementById('stat-words-removed').textContent =
-    `${stats.wordsRemoved} words`;
-  document.getElementById('stat-reduction').textContent =
-    `${stats.percentReduction}%`;
-
-  // Environmental savings
-  // Energy: show in µWh if < 1 Wh, else Wh
-  const energyWh = stats.energySavedWh;
-  document.getElementById('stat-energy').textContent =
-    energyWh < 0.001
-      ? (energyWh * 1000).toFixed(4)   // µWh
-      : energyWh.toFixed(6);           // Wh
-
-  // Water: convert liters → mL for readability at these small scales
-  const waterMl = stats.waterSavedLiters * 1000;
-  document.getElementById('stat-water').textContent = waterMl.toFixed(4);
-
-  // CO2: convert grams → mg for readability
-  const co2Mg = stats.co2SavedGrams * 1000;
-  document.getElementById('stat-co2').textContent = co2Mg.toFixed(3);
-
-  document.getElementById('result-card').classList.remove('hidden');
-
-  if (window.ecoTrackPromptOptimization) {
-    await window.ecoTrackPromptOptimization({
-      originalPrompt: original,
-      optimizedPrompt: optimized,
-      optimizationMode: "balanced",
-      platform: "EcoPrompt",
-      source: "prompt-generator-widget"
-    });
+function mountOptimizer() {
+  if (optimizerUI) return;
+  const mount = document.getElementById('optimizer-mount');
+  if (mount && window.EcoPromptOptimizerUI) {
+    optimizerUI = window.EcoPromptOptimizerUI.mount(mount, { variant: 'popup' });
   }
+}
+
+document.getElementById('open-fullpage').addEventListener('click', (e) => {
+  e.preventDefault();
+  // openOptionsPage() cannot carry a fragment, so open the options URL directly
+  // to land on the optimizer tab.
+  chrome.tabs.create({ url: chrome.runtime.getURL('options/options.html#optimizer') });
+  window.close();
 });

@@ -844,3 +844,35 @@ body.light .scale-badge { border-color: rgba(39,169,108,0.35); }
   padding: 16px;
   border-top: 1px solid var(--border);
 }
+
+/* ── optimizer-ui bridge ──────────────────────────────────────────────────
+   Maps this sheet's tokens onto the --eco-* names lib/optimizer-ui.css uses.
+   Declared on `body` (not :root) so it resolves AFTER body.light has swapped
+   the underlying tokens — the aliases then flip with the theme for free.
+   optimizer-ui.css must never hardcode a colour; add it here instead.
+
+   --accent-ink and --accent-ring have no equivalent in this sheet's palette,
+   so they are defined per theme below rather than aliased. */
+
+body {
+  --eco-surface:     var(--surface);
+  --eco-surface-2:   var(--surface-2);
+  --eco-border:      var(--border);
+  --eco-text-1:      var(--text-1);
+  --eco-text-2:      var(--text-2);
+  --eco-text-3:      var(--text-3);
+  --eco-accent:      var(--accent);
+  --eco-accent-ink:  #05130a;
+  --eco-accent-ring: var(--accent-glow);
+  --eco-radius:      var(--radius);
+  --eco-radius-sm:   var(--radius-sm);
+  --eco-fs-label:    11px;
+  --eco-fs-body:     13px;
+  --eco-gap:         12px;
+  --eco-pad:         14px;
+}
+
+body.light {
+  /* Dark ink on the light theme's accent would fail contrast; use white. */
+  --eco-accent-ink:  #ffffff;
+}

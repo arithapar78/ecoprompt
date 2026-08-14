@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>EcoPrompt</title>
   <link rel="stylesheet" href="popup.css" />
+  <link rel="stylesheet" href="../lib/optimizer-ui.css" />
 </head>
 <body>
 
@@ -133,76 +134,13 @@
 
     <main class="view-body">
 
-      <!-- Input -->
-      <section class="card">
-        <label class="card-label" for="original-prompt">Your prompt</label>
-        <textarea id="original-prompt" placeholder="Paste or type your prompt…" rows="6"></textarea>
-        <div class="token-row">
-          <span class="token-label">Tokens</span>
-          <span id="original-tokens" class="token-count">0</span>
-        </div>
-        <button id="optimize-btn" class="primary-btn" type="button">Optimize</button>
-      </section>
+      <!-- Optimizer UI is rendered by lib/optimizer-ui.js, shared with the
+           Settings page so both surfaces cannot drift apart. -->
+      <div id="optimizer-mount"></div>
 
-      <!-- Result (hidden until first optimize) -->
-      <section class="card hidden" id="result-card">
-        <div class="card-label">Optimized prompt</div>
-        <div id="optimized-prompt" class="output-text"></div>
-
-        <div class="statgrid">
-          <div class="stat">
-            <span class="stat-label">Original</span>
-            <span id="stat-original" class="stat-value">—</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Optimized</span>
-            <span id="stat-optimized" class="stat-value">—</span>
-          </div>
-          <div class="stat stat--accent">
-            <span class="stat-label">Tokens saved</span>
-            <span id="stat-saved" class="stat-value">—</span>
-          </div>
-          <div class="stat stat--accent">
-            <span class="stat-label">Reduction</span>
-            <span id="stat-reduction" class="stat-value">—</span>
-          </div>
-          <div class="stat stat--wide">
-            <span class="stat-label">Words removed</span>
-            <span id="stat-words-removed" class="stat-value">—</span>
-          </div>
-        </div>
-
-        <div class="savings">
-          <div class="card-label">Estimated savings per query</div>
-          <ul class="datalist">
-
-            <li class="datarow">
-              <span class="datarow-ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
-              </span>
-              <span class="datarow-label">Energy</span>
-              <span class="datarow-value"><span id="stat-energy">—</span> <span class="datarow-unit">Wh</span></span>
-            </li>
-
-            <li class="datarow">
-              <span class="datarow-ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3z"/></svg>
-              </span>
-              <span class="datarow-label">Water</span>
-              <span class="datarow-value"><span id="stat-water">—</span> <span class="datarow-unit">mL</span></span>
-            </li>
-
-            <li class="datarow">
-              <span class="datarow-ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M4 20c0-8 5-13 16-13 0 10-6 14-12 14-2 0-4-.4-4-1z"/><path d="M4 20c3-5 7-8 12-9.5"/></svg>
-              </span>
-              <span class="datarow-label">CO₂</span>
-              <span class="datarow-value"><span id="stat-co2">—</span> <span class="datarow-unit">mg</span></span>
-            </li>
-
-          </ul>
-        </div>
-      </section>
+      <p class="fullpage-row">
+        <a href="#" id="open-fullpage" class="fullpage-link">Open in full page ↗</a>
+      </p>
 
       <div id="status" class="status hidden"></div>
 
@@ -210,7 +148,7 @@
   </div><!-- /view-optimizer -->
 
 
-  <!-- Script load order matters: rules-db → token-counter → optimizer → generator → energy-estimator → api → analytics → popup -->
+  <!-- Script load order matters: rules-db → token-counter → optimizer → generator → energy-estimator → api → analytics → optimizer-ui → popup -->
   <script src="../lib/prompt-rules-db.js"></script>
   <script src="../lib/token-counter.js"></script>
   <script src="../lib/prompt-optimizer.js"></script>
@@ -218,6 +156,7 @@
   <script src="../lib/energy-estimator.js"></script>
   <script src="../lib/api.js"></script>
   <script src="../lib/analytics-tracker.js"></script>
+  <script src="../lib/optimizer-ui.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
