@@ -1,0 +1,135 @@
+# EcoPrompt Desktop release.
+# Trigger: push a tag like desktop-v0.1.0 (must equal the version in desktop/package.json).
+# Result: a DRAFT GitHub Release with a universal Mac .dmg, a Windows NSIS -setup.exe,
+# an .msi, and SHA256SUMS.txt. Review the draft, then publish it by hand.
+# Builds are UNSIGNED (see desktop/docs/INSTALL-UNSIGNED.md).
+name: desktop-release
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Tag must match the app version
+        working-directory: desktop
+        run: node scripts/check-versions.mjs "${{ github.ref_name }}"
+
+      # Created once, here, so the matrix jobs below don't race to create two drafts.
+      - name: Create draft release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#desktop-v}"
+          cat > body.md <<'NOTES'
+          EcoPrompt Desktop optimizes prompts anywhere and estimates your computer's energy use. Everything stays on your device.
+
+          **These builds are not code-signed yet.** macOS and Windows show a warning the first time you open the app. That is expected. Follow the steps in [INSTALL-UNSIGNED.md](https://github.com/${{ github.repository }}/blob/main/desktop/docs/INSTALL-UNSIGNED.md).
+
+          Verify your download against SHA256SUMS.txt.
+          NOTES
+          ID=$(gh api "repos/${{ github.repository }}/releases" \
+            -f tag_name="$TAG" \
+            -f name="EcoPrompt Desktop v$VERSION" \
+            -F body=@body.md \
+            -F draft=true \
+            -F prerelease=false \
+            --jq .id)
+          echo "release_id=$ID" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target universal-apple-darwin
+          - platform: windows-latest
+            rust_targets: ''
+            # NSIS -setup.exe is the main download; .msi is a free extra via WiX.
+            args: --bundles nsis,msi
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Install JS dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Rust tests
+        working-directory: desktop/src-tauri
+        run: cargo test
+
+      - name: Optimizer parity test
+        working-directory: desktop
+        run: npm test
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.args }}
+
+  checksums:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and upload SHA256SUMS.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RID: ${{ needs.create-release.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          mkdir assets && cd assets
+          # Draft releases can't be fetched by tag, so go by release id.
+          gh api "repos/$REPO/releases/$RID/assets" --paginate \
+            --jq '.[] | select(.name != "SHA256SUMS.txt") | "\(.id) \(.name)"' > list.txt
+          test -s list.txt || { echo "no assets found on release $RID"; exit 1; }
+          while read -r id name; do
+            gh api -H "Accept: application/octet-stream" "repos/$REPO/releases/assets/$id" > "$name"
+          done < list.txt
+          sha256sum -- $(awk '{print $2}' list.txt) > ../SHA256SUMS.txt
+          cat ../SHA256SUMS.txt
+          cd ..
+          curl -sS --fail -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: text/plain" \
+            --data-binary @SHA256SUMS.txt \
+            "https://uploads.github.com/repos/$REPO/releases/$RID/assets?name=SHA256SUMS.txt"

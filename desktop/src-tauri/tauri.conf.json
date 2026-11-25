@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "EcoPrompt",
-  "version": "0.1.0",
+  "mainBinaryName": "EcoPrompt",
+  "version": "../package.json",
   "identifier": "com.learntav.ecoprompt",
   "build": {
     "frontendDist": "../src"

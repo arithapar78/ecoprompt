@@ -344,6 +344,9 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 
+// TODO(updater): auto-update needs signing keys (tauri-plugin-updater + a
+// minisign keypair). When added, the endpoint is the latest GitHub release of
+// arithapar78/ecoprompt: .../releases/latest/download/latest.json
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let debug = std::env::var("ECOPROMPT_DEBUG").map(|v| v == "1").unwrap_or(false);

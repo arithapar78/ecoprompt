@@ -54,3 +54,17 @@ node ../extension/test/optimizer-test.js   # extension's own tests (run from rep
 - History: `history.json` (2,880-entry ring, extension-compatible `{ts, watts, site}` + `apps`) and `daily.json` (90 days, Wh per group) in the app data dir (Mac: `~/Library/Application Support/com.learntav.ecoprompt/`). Flushed at most once a minute and on quit, always atomically (temp + rename).
 - Mac laptops on battery also show "measured (battery)" from `ioreg` (no sudo). macOS refreshes that reading roughly once a minute, so it repeats across 30 s samples.
 - Idle/Max watts are editable under Settings.
+
+## Build and release
+
+```sh
+npm run check:versions                       # package.json / tauri.conf.json / Cargo.toml / Cargo.lock must agree
+npm run version:set -- 0.2.0                 # change the version everywhere (package.json is the source)
+npm run tauri build -- --target universal-apple-darwin
+# -> src-tauri/target/universal-apple-darwin/release/bundle/dmg/EcoPrompt_<version>_universal.dmg
+```
+
+- Building the DMG from a terminal that cannot control Finder fails at "AppleEvent timed out". Run with `CI=true npm run tauri build -- …`; this only skips the DMG window layout.
+- Windows builds only through GitHub Actions: `.github/workflows/desktop-release.yml` (repo root).
+- **Release flow:** bump version, `npm run check:versions`, commit, then `git tag desktop-v0.1.0 && git push origin desktop-v0.1.0`. The workflow creates a **draft** release with the Mac `.dmg`, Windows `-setup.exe` + `.msi`, and `SHA256SUMS.txt`. Review and publish the draft by hand.
+- Builds are unsigned: see [docs/INSTALL-UNSIGNED.md](docs/INSTALL-UNSIGNED.md).
