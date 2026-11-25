@@ -1,3 +1,9 @@
+mod ai_apps;
+mod battery;
+mod energy_model;
+mod fsutil;
+mod history;
+mod monitor;
 mod quick;
 mod settings;
 
@@ -219,7 +225,7 @@ fn register_shortcut(app: &AppHandle, accel: &str) -> Result<(), String> {
     }
 }
 
-fn settings_path(app: &AppHandle) -> std::path::PathBuf {
+pub(crate) fn settings_path(app: &AppHandle) -> std::path::PathBuf {
     app.path()
         .app_config_dir()
         .unwrap_or_else(|_| std::env::temp_dir())
@@ -234,8 +240,60 @@ fn get_settings(app: AppHandle) -> settings::Settings {
 #[tauri::command]
 fn set_shortcut(app: AppHandle, accelerator: String) -> Result<(), String> {
     register_shortcut(&app, &accelerator)?;
-    settings::save(&settings_path(&app), &settings::Settings { shortcut: accelerator })
-        .map_err(|e| format!("Couldn't save settings: {e}"))
+    let path = settings_path(&app);
+    let mut s = settings::load(&path);
+    s.shortcut = accelerator;
+    settings::save(&path, &s).map_err(|e| format!("Couldn't save settings: {e}"))
+}
+
+// ── Energy commands ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_energy_snapshot(mon: tauri::State<monitor::Monitor>) -> Option<monitor::Snapshot> {
+    mon.latest()
+}
+
+#[tauri::command]
+fn get_history(mon: tauri::State<monitor::Monitor>) -> Vec<history::Entry> {
+    mon.history()
+}
+
+/// `None` for either value = back to the device-class default.
+#[tauri::command]
+fn set_energy_params(
+    app: AppHandle,
+    mon: tauri::State<monitor::Monitor>,
+    idle: Option<f64>,
+    max: Option<f64>,
+) -> Result<energy_model::Params, String> {
+    let d = energy_model::defaults(mon.class());
+    energy_model::validate(energy_model::Params { idle: idle.unwrap_or(d.idle), max: max.unwrap_or(d.max) })?;
+    let path = settings_path(&app);
+    let mut s = settings::load(&path);
+    s.energy_idle_w = idle;
+    s.energy_max_w = max;
+    settings::save(&path, &s).map_err(|e| format!("Couldn't save settings: {e}"))?;
+    Ok(energy_model::resolve(mon.class(), idle, max))
+}
+
+/// Opens a save dialog and writes the history as JSON. Returns the chosen path,
+/// or None if the user cancelled.
+#[tauri::command]
+async fn export_history(app: AppHandle, mon: tauri::State<'_, monitor::Monitor>) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let Some(path) = app
+        .dialog()
+        .file()
+        .set_file_name("ecoprompt-history.json")
+        .add_filter("JSON", &["json"])
+        .blocking_save_file()
+    else {
+        return Ok(None);
+    };
+    let path = path.into_path().map_err(|e| e.to_string())?;
+    let json = serde_json::to_vec_pretty(&mon.history()).map_err(|e| e.to_string())?;
+    fsutil::write_atomic(&path, &json).map_err(|e| format!("Couldn't write the file: {e}"))?;
+    Ok(Some(path.display().to_string()))
 }
 
 // ── Tray ─────────────────────────────────────────────────────────────────────
@@ -304,6 +362,7 @@ pub fn run() {
             Some(vec!["--hidden"]),
         ))
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
@@ -318,7 +377,11 @@ pub fn run() {
             quick_optimize_result,
             undo_quick,
             get_settings,
-            set_shortcut
+            set_shortcut,
+            get_energy_snapshot,
+            get_history,
+            set_energy_params,
+            export_history
         ])
         .on_window_event(|window, event| {
             // Closing the main window hides it; the app keeps running in the tray.
@@ -331,6 +394,9 @@ pub fn run() {
         })
         .setup(|app| {
             let handle = app.handle().clone();
+            let data_dir = handle.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("ecoprompt"));
+            app.manage(monitor::Monitor::new(&data_dir));
+            monitor::spawn(handle.clone());
             create_toast_window(&handle)?;
             build_tray(&handle)?;
 
@@ -346,6 +412,14 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Flush buffered history on quit (it is otherwise written once a minute).
+            if let tauri::RunEvent::Exit = event {
+                if let Some(mon) = app.try_state::<monitor::Monitor>() {
+                    mon.flush();
+                }
+            }
+        });
 }

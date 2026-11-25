@@ -1,4 +1,5 @@
 import { optimize } from './engine.js';
+import { initEnergy } from './energy.js';
 
 const TOKEN_DEBOUNCE_MS = 150;
 const COPY_FEEDBACK_MS = 1400;
@@ -146,3 +147,5 @@ if (tauri) {
     stopRecording();
   }, true);
 }
+
+initEnergy();

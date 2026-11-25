@@ -9,11 +9,14 @@ pub const DEFAULT_SHORTCUT: &str = "CommandOrControl+Shift+E";
 #[serde(default)]
 pub struct Settings {
     pub shortcut: String,
+    /// Energy model overrides; None = device-class default.
+    pub energy_idle_w: Option<f64>,
+    pub energy_max_w: Option<f64>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { shortcut: DEFAULT_SHORTCUT.into() }
+        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None }
     }
 }
 
@@ -24,14 +27,8 @@ pub fn load(path: &Path) -> Settings {
         .unwrap_or_default()
 }
 
-/// Atomic write: temp file in the same dir, then rename.
 pub fn save(path: &Path, s: &Settings) -> std::io::Result<()> {
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir)?;
-    }
-    let tmp = path.with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_vec_pretty(s)?)?;
-    fs::rename(&tmp, path)
+    crate::fsutil::write_atomic(path, &serde_json::to_vec_pretty(s)?)
 }
 
 #[cfg(test)]
@@ -53,10 +50,10 @@ mod tests {
     fn roundtrip() {
         let dir = std::env::temp_dir().join(format!("eco-settings-rt-{}", std::process::id()));
         let p = dir.join("settings.json");
-        let s = Settings { shortcut: "Alt+Shift+O".into() };
+        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None };
         save(&p, &s).unwrap();
         assert_eq!(load(&p), s);
-        assert!(!p.with_extension("json.tmp").exists());
+        assert!(!dir.join("settings.json.tmp").exists());
         let _ = fs::remove_dir_all(&dir);
     }
 }

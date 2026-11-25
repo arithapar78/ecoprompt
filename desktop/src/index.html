@@ -21,6 +21,12 @@
       <p class="sub">Shorter prompts, less energy.</p>
     </header>
 
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-optimizer" aria-controls="view-optimizer" aria-selected="true" type="button">Optimizer</button>
+      <button class="tab" role="tab" id="tab-energy" aria-controls="view-energy" aria-selected="false" type="button" tabindex="-1">Energy</button>
+    </nav>
+
+    <div id="view-optimizer" role="tabpanel" aria-labelledby="tab-optimizer">
     <div class="panes">
       <section class="card">
         <label class="label" for="input">Your prompt</label>
@@ -56,6 +62,44 @@
       </section>
     </div>
 
+    </div>
+
+    <div id="view-energy" role="tabpanel" aria-labelledby="tab-energy" hidden>
+      <section class="card">
+        <div class="bigrow">
+          <div>
+            <span class="label">Estimated system power</span>
+            <div class="big"><span id="e-watts">—</span> <span class="unit">W</span></div>
+            <div class="muted" id="e-sub">Waiting for the first sample…</div>
+          </div>
+          <div class="right">
+            <div class="muted" id="e-battery" hidden></div>
+          </div>
+        </div>
+        <p class="muted note">Estimate from CPU use, not a power meter. Browser power includes everything in the browser; the EcoPrompt Chrome extension gives the per-site AI breakdown inside Chrome.</p>
+      </section>
+
+      <div class="statgrid three">
+        <div class="stat"><span class="muted">Today</span><b><span id="e-today">—</span> <span class="unit">Wh</span></b></div>
+        <div class="stat accent"><span class="muted">AI apps today</span><b><span id="e-ai-today">—</span> <span class="unit">Wh</span></b></div>
+        <div class="stat"><span class="muted">Browsers today</span><b><span id="e-br-today">—</span> <span class="unit">Wh</span></b></div>
+      </div>
+
+      <section class="card">
+        <div class="outhead">
+          <span class="label">Last 24 hours</span>
+          <button id="e-export" class="copy" type="button">Export JSON</button>
+        </div>
+        <canvas id="e-chart" role="img" aria-label="Bar chart of estimated system watts over the last 24 hours"></canvas>
+        <p id="e-export-msg" class="msg" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="card">
+        <span class="label">Top apps right now</span>
+        <ul class="datalist" id="e-apps"><li class="muted">Waiting for the first sample…</li></ul>
+      </section>
+    </div>
+
     <details id="settings" class="card settings">
       <summary class="label">Settings</summary>
       <div class="setting">
@@ -66,6 +110,19 @@
         </div>
         <p id="shortcut-help" class="muted">Copy text anywhere, press the shortcut, then paste. Click Change, then press the new keys (include Cmd/Ctrl or Alt).</p>
         <p id="shortcut-msg" class="msg" role="status" aria-live="polite"></p>
+      </div>
+      <div class="setting">
+        <span class="label">Energy model (estimate)</span>
+        <div class="shortcut-row">
+          <label class="muted" for="p-idle">Idle W</label>
+          <input id="p-idle" class="shortcut num" type="number" min="0" step="0.5" />
+          <label class="muted" for="p-max">Max W</label>
+          <input id="p-max" class="shortcut num" type="number" min="1" step="1" />
+          <button id="p-save" class="copy" type="button">Save</button>
+          <button id="p-reset" class="copy" type="button">Reset</button>
+        </div>
+        <p class="muted">Defaults depend on the device: laptop 4 / 40 W, desktop 30 / 150 W. These are rough figures; change them to match your machine.</p>
+        <p id="p-msg" class="msg" role="status" aria-live="polite"></p>
       </div>
     </details>
   </main>
