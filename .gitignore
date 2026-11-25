@@ -68,3 +68,8 @@ functions/.env
 
 # dataconnect generated files
 .dataconnect
+
+# EcoPrompt Desktop
+desktop/src-tauri/target/
+desktop/node_modules/
+desktop/dist/
