@@ -1,39 +1,60 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>EcoPrompt</title>
+  <!-- Classic scripts, this order, before app JS. Vendored: never edit by hand
+       (run `npm run sync:optimizer`). -->
+  <script src="vendor/optimizer/prompt-rules-db.js"></script>
+  <script src="vendor/optimizer/token-counter.js"></script>
+  <script src="vendor/optimizer/prompt-optimizer.js"></script>
+  <script src="vendor/optimizer/prompt-generator.js"></script>
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+  <main class="app">
+    <header class="app-head">
+      <h1>EcoPrompt</h1>
+      <p class="sub">Shorter prompts, less energy.</p>
+    </header>
 
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+    <div class="panes">
+      <section class="card">
+        <label class="label" for="input">Your prompt</label>
+        <textarea id="input" class="textarea" rows="10" placeholder="Paste or type your prompt…"></textarea>
+        <div class="tokenrow">
+          <span id="token-label" class="muted">Tokens</span>
+          <span id="live-tokens" aria-live="polite" aria-labelledby="token-label">0</span>
+        </div>
+        <button id="optimize" class="btn" type="button">Optimize <kbd id="kbd">⌘↵</kbd></button>
+      </section>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+      <section class="card hidden" id="result" aria-live="polite">
+        <div class="outhead">
+          <span class="label">Optimized prompt</span>
+          <button id="copy" class="copy" type="button">Copy</button>
+        </div>
+        <div id="output" class="output"></div>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
-  </body>
+        <div class="statgrid">
+          <div class="stat"><span class="muted">Original</span><b id="tok-before">—</b></div>
+          <div class="stat"><span class="muted">Optimized</span><b id="tok-after">—</b></div>
+          <div class="stat accent"><span class="muted">Tokens saved</span><b id="tok-saved">—</b></div>
+          <div class="stat accent"><span class="muted">Reduction</span><b id="reduction">—</b></div>
+          <div class="stat wide"><span class="muted">Words removed</span><b id="words-removed">—</b></div>
+        </div>
+
+        <div class="label">Estimated savings per query</div>
+        <ul class="datalist">
+          <li><span>Energy</span><span><span id="energy">—</span> <span class="unit" id="energy-unit">Wh</span></span></li>
+          <li><span>Water</span><span><span id="water">—</span> <span class="unit">mL</span></span></li>
+          <li><span>CO₂</span><span><span id="co2">—</span> <span class="unit">mg</span></span></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
 </html>

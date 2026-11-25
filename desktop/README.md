@@ -29,3 +29,11 @@ npm run tauri icon ../extension/assets/logo.png
 ```
 
 Windows builds run through GitHub Actions (added in Phase 4).
+
+## Optimizer sync and tests
+
+```sh
+npm run sync:optimizer   # copy extension/lib optimizer into src/vendor/optimizer (never hand-edit)
+npm test                 # parity test: vendored copy vs extension originals
+node ../extension/test/optimizer-test.js   # extension's own tests (run from repo root: node extension/test/optimizer-test.js)
+```
