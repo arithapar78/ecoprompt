@@ -55,6 +55,19 @@
         </ul>
       </section>
     </div>
+
+    <details id="settings" class="card settings">
+      <summary class="label">Settings</summary>
+      <div class="setting">
+        <label class="label" for="shortcut">Quick optimize shortcut</label>
+        <div class="shortcut-row">
+          <input id="shortcut" class="shortcut" type="text" readonly value="" aria-describedby="shortcut-help" />
+          <button id="shortcut-record" class="copy" type="button">Change</button>
+        </div>
+        <p id="shortcut-help" class="muted">Copy text anywhere, press the shortcut, then paste. Click Change, then press the new keys (include Cmd/Ctrl or Alt).</p>
+        <p id="shortcut-msg" class="msg" role="status" aria-live="polite"></p>
+      </div>
+    </details>
   </main>
 </body>
 </html>

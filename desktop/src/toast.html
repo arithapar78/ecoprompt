@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>EcoPrompt toast</title>
+  <style>
+    html, body { height: 100%; overflow: hidden; background: var(--eco-surface); }
+    body { display: flex; align-items: center; gap: 12px; padding: 0 16px; border: 1px solid var(--eco-border); }
+    #msg { flex: 1; font-size: 13px; line-height: 1.35; }
+    #undo { flex: none; }
+  </style>
+</head>
+<body>
+  <div id="msg" role="status" aria-live="polite"></div>
+  <button id="undo" class="copy" type="button" hidden>Undo</button>
+  <script>
+    const { listen } = window.__TAURI__.event;
+    const { invoke } = window.__TAURI__.core;
+    const msg = document.getElementById('msg');
+    const undo = document.getElementById('undo');
+    listen('toast', (e) => {
+      msg.textContent = e.payload.message;
+      undo.hidden = !e.payload.undo;
+    });
+    undo.addEventListener('click', () => { undo.hidden = true; invoke('undo_quick'); });
+  </script>
+</body>
+</html>

@@ -68,3 +68,12 @@ kbd { font: inherit; font-weight: 400; opacity: .75; margin-left: 6px; }
 .datalist li { padding: 6px 0; border-bottom: 1px solid var(--eco-border); }
 .datalist li:last-child { border-bottom: 0; }
 .unit { color: var(--eco-text-3); }
+.settings { margin-top: var(--eco-gap); }
+.settings summary { cursor: pointer; }
+.setting { display: flex; flex-direction: column; gap: 8px; margin-top: var(--eco-gap); }
+.shortcut-row { display: flex; gap: 8px; }
+.shortcut { flex: 1; padding: 8px 10px; background: var(--eco-surface-2); color: inherit; border: 1px solid var(--eco-border); border-radius: var(--eco-radius-sm); font: inherit; }
+.shortcut.recording { outline: 2px solid var(--eco-accent-ring); }
+.msg { margin: 0; min-height: 1.5em; color: var(--eco-text-2); }
+.msg.error { color: #dc2626; }
+@media (prefers-color-scheme: dark) { .msg.error { color: #f87171; } }

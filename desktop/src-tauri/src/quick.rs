@@ -1,0 +1,111 @@
+//! Quick-optimize decision logic. Pure functions, no Tauri types, so it is
+//! unit-testable. NEVER log clipboard text from here: lengths and counts only.
+
+use std::time::{Duration, Instant};
+
+/// Clipboards longer than this are ignored (characters, not bytes).
+pub const MAX_CHARS: usize = 20_000;
+/// How long Undo can restore the original clipboard text.
+pub const UNDO_WINDOW: Duration = Duration::from_secs(30);
+
+/// Why the clipboard can't be optimized. The string is the toast text.
+pub fn classify(clip: Option<&str>) -> Result<&str, String> {
+    match clip {
+        None => Err("Clipboard has no text to optimize.".into()),
+        Some(t) if t.trim().is_empty() => Err("Clipboard is empty.".into()),
+        Some(t) if t.chars().count() > MAX_CHARS => Err(format!(
+            "Clipboard text is too long (over {} characters).",
+            MAX_CHARS
+        )),
+        Some(t) => Ok(t),
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Outcome {
+    /// Optimizer changed nothing: leave the clipboard alone.
+    AlreadyLean,
+    /// Write `optimized` to the clipboard and show `message`.
+    Replace { message: String },
+}
+
+pub fn decide(original: &str, optimized: &str, tokens_saved: u32, percent: u32) -> Outcome {
+    if optimized == original || optimized.trim().is_empty() {
+        Outcome::AlreadyLean
+    } else {
+        Outcome::Replace {
+            message: format!(
+                "Optimized: {} tokens saved ({}%). Paste to use.",
+                tokens_saved, percent
+            ),
+        }
+    }
+}
+
+/// Holds the original clipboard text so Undo can restore it.
+#[derive(Default)]
+pub struct UndoSlot {
+    entry: Option<(String, Instant)>,
+}
+
+impl UndoSlot {
+    pub fn store(&mut self, original: String, now: Instant) {
+        self.entry = Some((original, now));
+    }
+
+    /// Returns the original if still within the window. Always clears the slot.
+    pub fn take_fresh(&mut self, now: Instant) -> Option<String> {
+        let (text, at) = self.entry.take()?;
+        (now.duration_since(at) <= UNDO_WINDOW).then_some(text)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classify_rejects_missing_empty_and_long() {
+        assert!(classify(None).is_err());
+        assert!(classify(Some("")).is_err());
+        assert!(classify(Some("  \n\t ")).is_err());
+        let long = "a".repeat(MAX_CHARS + 1);
+        assert!(classify(Some(&long)).unwrap_err().contains("too long"));
+        let ok = "a".repeat(MAX_CHARS);
+        assert!(classify(Some(&ok)).is_ok());
+    }
+
+    #[test]
+    fn classify_counts_chars_not_bytes() {
+        // 20,000 two-byte chars = 40,000 bytes but exactly at the limit.
+        let s = "é".repeat(MAX_CHARS);
+        assert!(classify(Some(&s)).is_ok());
+    }
+
+    #[test]
+    fn decide_already_lean_when_unchanged() {
+        assert_eq!(decide("Sort list.", "Sort list.", 0, 0), Outcome::AlreadyLean);
+        assert_eq!(decide("x", "  ", 1, 100), Outcome::AlreadyLean);
+    }
+
+    #[test]
+    fn decide_replace_message() {
+        assert_eq!(
+            decide("long text", "short", 42, 31),
+            Outcome::Replace { message: "Optimized: 42 tokens saved (31%). Paste to use.".into() }
+        );
+    }
+
+    #[test]
+    fn undo_restores_within_window_only() {
+        let t0 = Instant::now();
+        let mut s = UndoSlot::default();
+        s.store("orig".into(), t0);
+        assert_eq!(s.take_fresh(t0 + Duration::from_secs(29)).as_deref(), Some("orig"));
+        // Taken once: gone.
+        assert_eq!(s.take_fresh(t0 + Duration::from_secs(29)), None);
+
+        s.store("orig".into(), t0);
+        assert_eq!(s.take_fresh(t0 + Duration::from_secs(31)), None);
+    }
+}
