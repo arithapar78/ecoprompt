@@ -12,11 +12,13 @@ pub struct Settings {
     /// Energy model overrides; None = device-class default.
     pub energy_idle_w: Option<f64>,
     pub energy_max_w: Option<f64>,
+    /// Verbose logging (also forced on by ECOPROMPT_DEBUG=1). Never logs prompt text.
+    pub debug_logging: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None }
+        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None, debug_logging: false }
     }
 }
 
@@ -50,7 +52,7 @@ mod tests {
     fn roundtrip() {
         let dir = std::env::temp_dir().join(format!("eco-settings-rt-{}", std::process::id()));
         let p = dir.join("settings.json");
-        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None };
+        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None, debug_logging: true };
         save(&p, &s).unwrap();
         assert_eq!(load(&p), s);
         assert!(!dir.join("settings.json.tmp").exists());

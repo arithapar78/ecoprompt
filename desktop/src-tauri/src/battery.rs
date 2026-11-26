@@ -5,7 +5,7 @@
 
 use crate::energy_model::DeviceClass;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize)]
 pub struct Reading {
     pub voltage_mv: f64,
     pub amperage_ma: i64,
@@ -69,6 +69,16 @@ pub fn detect_device_class() -> DeviceClass {
         }
     }
     DeviceClass::Desktop
+}
+
+/// Raw battery numbers for the debug panel (Mac laptops only).
+pub fn raw_reading() -> Option<Reading> {
+    #[cfg(target_os = "macos")]
+    {
+        return parse_ioreg(&ioreg()?);
+    }
+    #[allow(unreachable_code)]
+    None
 }
 
 /// Measured total watts, if this is a Mac laptop currently discharging.

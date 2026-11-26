@@ -50,7 +50,27 @@ pub struct Snapshot {
     pub warmup: bool,
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct RawProc {
+    pub name: String,
+    pub cpu_pct: f64,
+}
+
+/// One sampling tick as measured, for the debug panel. No prompt or clipboard data.
+#[derive(Serialize, Clone, Debug)]
+pub struct RawSample {
+    pub ts: i64,
+    pub total_cpu_pct: f64,
+    pub watts: f64,
+    pub top_processes: Vec<RawProc>,
+    pub battery_watts: Option<f64>,
+    pub stored: bool,
+}
+
+const RAW_KEEP: usize = 10;
+
 pub struct Monitor {
+    pub raw: Mutex<std::collections::VecDeque<RawSample>>,
     pub store: Mutex<Store>,
     latest: Mutex<Option<Snapshot>>,
     class: DeviceClass,
@@ -63,6 +83,7 @@ impl Monitor {
         let class = battery::detect_device_class();
         log::info!("device class: {:?}", class);
         Self {
+            raw: Mutex::new(std::collections::VecDeque::new()),
             store: Mutex::new(Store::load(dir)),
             latest: Mutex::new(None),
             class,
@@ -77,6 +98,10 @@ impl Monitor {
 
     pub fn latest(&self) -> Option<Snapshot> {
         self.latest.lock().unwrap().clone()
+    }
+
+    pub fn raw_samples(&self) -> Vec<RawSample> {
+        self.raw.lock().unwrap().iter().cloned().collect()
     }
 
     pub fn history(&self) -> Vec<Entry> {
@@ -115,9 +140,12 @@ fn take_sample(app: &AppHandle, mon: &Monitor, sys: &mut System, own_pid: Option
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing().with_cpu());
 
     let util = sys.global_cpu_usage() as f64 / 100.0;
-    let mut groups = ai_apps::aggregate(
-        sys.processes().values().map(|p| (p.name().to_string_lossy().into_owned(), p.cpu_usage() as f64)).collect::<Vec<_>>().iter().map(|(n, c)| (n.as_str(), *c)),
-    );
+    let procs: Vec<(String, f64)> = sys
+        .processes()
+        .values()
+        .map(|p| (p.name().to_string_lossy().into_owned(), p.cpu_usage() as f64))
+        .collect();
+    let mut groups = ai_apps::aggregate(procs.iter().map(|(n, c)| (n.as_str(), *c)));
     // Total CPU the OS reports, in the same units as per-process % (100 = one core).
     let ncpu = sys.cpus().len().max(1) as f64;
     ai_apps::add_unattributed(&mut groups, util * ncpu * 100.0);
@@ -155,6 +183,22 @@ fn take_sample(app: &AppHandle, mon: &Monitor, sys: &mut System, own_pid: Option
     }
 
     let ts = chrono::Utc::now().timestamp_millis();
+    {
+        let mut top = procs.clone();
+        top.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        let mut raw = mon.raw.lock().unwrap();
+        raw.push_back(RawSample {
+            ts,
+            total_cpu_pct: util * 100.0,
+            watts: system_watts,
+            top_processes: top.into_iter().take(5).map(|(name, cpu_pct)| RawProc { name, cpu_pct }).collect(),
+            battery_watts,
+            stored: store,
+        });
+        while raw.len() > RAW_KEEP {
+            raw.pop_front();
+        }
+    }
     let day = day_key(ts);
     let pairs: Vec<(String, f64)> = rows.iter().map(|r| (r.group.clone(), model::wh_for_sample(r.watts))).collect();
 

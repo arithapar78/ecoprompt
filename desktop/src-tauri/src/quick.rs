@@ -21,6 +21,22 @@ pub fn classify(clip: Option<&str>) -> Result<&str, String> {
     }
 }
 
+/// Log lines for quick-optimize. They take the text only to COUNT it: lengths and
+/// token counts go in the log, never the text itself (see the privacy test).
+pub fn describe_request(id: u64, text: &str) -> String {
+    format!("quick-optimize request {} ({} chars)", id, text.chars().count())
+}
+
+pub fn describe_result(id: u64, original: &str, optimized: &str, tokens_saved: u32) -> String {
+    format!(
+        "quick-optimize result {}: {} -> {} chars, {} tokens saved",
+        id,
+        original.chars().count(),
+        optimized.chars().count(),
+        tokens_saved
+    )
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Outcome {
     /// Optimizer changed nothing: leave the clipboard alone.
@@ -63,6 +79,23 @@ impl UndoSlot {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn log_lines_never_contain_the_clipboard_text() {
+        let original = "CANARY-secret-prompt-9f3a please summarize my private notes";
+        let optimized = "CANARY-secret-prompt-9f3a summarize private notes";
+        let lines = [
+            describe_request(7, original),
+            describe_result(7, original, optimized, 4),
+            classify(Some(&"x".repeat(MAX_CHARS + 1))).unwrap_err(),
+            classify(Some("   ")).unwrap_err(),
+        ];
+        for line in lines {
+            assert!(!line.contains("CANARY"), "log line leaked text: {line}");
+            assert!(!line.contains("private notes"), "log line leaked text: {line}");
+        }
+        assert_eq!(describe_request(7, "héllo"), "quick-optimize request 7 (5 chars)");
+    }
 
     #[test]
     fn classify_rejects_missing_empty_and_long() {

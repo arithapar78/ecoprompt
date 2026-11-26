@@ -71,3 +71,47 @@ changing any of these.
 ## Scope Constraints (from SKILL.md)
 
 Do not add: premium access, full analytics dashboard, OODA agent, pattern recognition, notifications, website integration, export/import, or advanced settings. MVP only.
+
+## Desktop app (`desktop/`)
+
+**The extension's MVP scope rules above do NOT apply to `desktop/`.** It is a separate product (Tauri 2, Mac + Windows) in its own folder. Never modify `extension/` from desktop work.
+
+**Run / test / build** (details in `desktop/README.md`):
+
+```sh
+cd desktop && npm install
+npm run tauri dev                          # dev window
+npm test                                   # optimizer parity + log-privacy (node)
+(cd src-tauri && cargo test)               # Rust tests
+npm run check:versions                     # package.json / tauri.conf.json / Cargo.toml / Cargo.lock agree
+CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=true skips Finder DMG styling)
+```
+
+**Layout**
+
+| Path | Role |
+|---|---|
+| `desktop/src/` | Plain HTML/CSS/JS, no framework or bundler. `engine.js` is the single optimizer interface (`engine: 'rules'` today; the seam for a future `'local-llm'`) |
+| `desktop/src/vendor/optimizer/` | **Vendored copy** of `extension/lib/{prompt-rules-db,token-counter,prompt-optimizer,prompt-generator}.js`. Never edit by hand |
+| `desktop/src-tauri/src/energy_model.rs` | **Every energy constant and the formulas.** Estimate only; `SAMPLE_INTERVAL_S` (30) must match the extension's `REPORT_PERIOD_MS` |
+| `desktop/src-tauri/src/ai_apps.rs` | Process name to group table (exact match on normalized name; Mac helper processes roll up) |
+| `desktop/src-tauri/src/monitor.rs` | 30 s sampler (CPU + processes only), battery cross-check, raw samples for the debug panel |
+| `desktop/src-tauri/src/history.rs`, `fsutil.rs` | Ring buffer + daily rollup, and the one atomic-write function (every file write goes through it) |
+| `desktop/src-tauri/src/quick.rs` | Quick-optimize decisions, Undo slot, and the only builders of log text derived from the clipboard |
+| `desktop/src-tauri/src/lib.rs` | Tray, hotkey, toast window, commands, diagnostics |
+
+**Sync-optimizer rule.** The desktop optimizer must give byte-identical results to the extension. Change the optimizer only in `extension/lib/`, commit it, then run `npm run sync:optimizer` in `desktop/` (it refuses to run if those files have uncommitted changes) and `npm test`. `SYNC.json` records the source commit and SHA-256s.
+
+**History and data.** `history.json` (ring of 2,880 entries `{ts, watts, site, apps}`, same shape as the extension plus `apps`) and `daily.json` (90 days, Wh per group, `{whTotal, bySite}`) live in the OS app data dir (Mac: `~/Library/Application Support/com.learntav.ecoprompt/`). Memory-buffered; flushed at most once a minute and on quit; atomic writes. Wh per sample is computed only by `energy_model::wh_for_sample`.
+
+**Rules that must not break**
+- No telemetry and no network calls from the desktop app.
+- Never log prompt or clipboard text (lengths and counts only). `desktop/test/log-privacy.test.mjs` and `quick::tests` enforce it.
+- Quick optimize is clipboard-only: never simulate keystrokes (that needs Mac Accessibility permission).
+- Energy figures are estimates and must be labelled as such in the UI.
+
+**Debugging:** `desktop/docs/DEBUGGING.md`. Hidden debug panel: Cmd/Ctrl+Shift+D.
+
+**Release flow.** `npm run version:set -- X.Y.Z` (package.json is the version source), commit, then `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`. `.github/workflows/desktop-release.yml` builds the Mac universal `.dmg` and Windows NSIS `-setup.exe` + `.msi` and creates a **draft** GitHub Release with `SHA256SUMS.txt`. Publish the draft by hand. Builds are unsigned (`desktop/docs/INSTALL-UNSIGNED.md`). The download buttons on learntav.com stay on "Coming soon" until `COMING_SOON` is set to `false` in `Website/assets/js/ecoprompt-download.js` (a separate repo, `arithapar78/learntav`).
+
+**Repo note.** This repo is now `arithapar78/ecoprompt` on GitHub (the old `power-tracker-v3` name redirects).

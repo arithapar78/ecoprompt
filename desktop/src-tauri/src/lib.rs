@@ -120,7 +120,7 @@ fn quick_optimize(app: &AppHandle) {
     };
     let state = app.state::<AppState>();
     let id = state.next_id.fetch_add(1, Ordering::SeqCst) + 1;
-    log::debug!("quick-optimize request {} ({} chars)", id, text.chars().count());
+    log::debug!("{}", quick::describe_request(id, &text));
     *state.pending.lock().unwrap() = Some((id, text.clone()));
 
     if app.emit_to("main", "quick-optimize", json!({ "id": id, "text": text })).is_err() {
@@ -158,13 +158,7 @@ fn quick_optimize_result(
             return;
         }
     };
-    log::debug!(
-        "quick-optimize result {}: {} -> {} chars, {} tokens saved",
-        id,
-        original.chars().count(),
-        optimized.chars().count(),
-        tokens_saved
-    );
+    log::debug!("{}", quick::describe_result(id, &original, &optimized, tokens_saved));
     match quick::decide(&original, &optimized, tokens_saved, percent) {
         quick::Outcome::AlreadyLean => toast(&app, "Already lean", false),
         quick::Outcome::Replace { message } => {
@@ -276,6 +270,70 @@ fn set_energy_params(
     Ok(energy_model::resolve(mon.class(), idle, max))
 }
 
+// ── Debug panel ──────────────────────────────────────────────────────────────
+
+fn debug_wanted(app: &AppHandle) -> bool {
+    std::env::var("ECOPROMPT_DEBUG").map(|v| v == "1").unwrap_or(false)
+        || settings::load(&settings_path(app)).debug_logging
+}
+
+/// The logger is built at Debug; this global max level is what actually gates it,
+/// so it can be flipped at runtime.
+fn apply_log_level(debug: bool) {
+    log::set_max_level(if debug { log::LevelFilter::Debug } else { log::LevelFilter::Info });
+}
+
+#[tauri::command]
+fn set_debug_logging(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let path = settings_path(&app);
+    let mut s = settings::load(&path);
+    s.debug_logging = enabled;
+    settings::save(&path, &s).map_err(|e| format!("Couldn't save settings: {e}"))?;
+    apply_log_level(debug_wanted(&app));
+    log::info!("debug logging {}", if enabled { "on" } else { "off" });
+    Ok(())
+}
+
+fn tail_lines(text: &str, n: usize) -> Vec<String> {
+    let lines: Vec<&str> = text.lines().collect();
+    lines[lines.len().saturating_sub(n)..].iter().map(|l| l.to_string()).collect()
+}
+
+/// Everything the debug panel shows, as JSON. Never contains prompts or clipboard text.
+#[tauri::command]
+fn get_diagnostics(app: AppHandle, mon: tauri::State<monitor::Monitor>) -> serde_json::Value {
+    let log_dir = app.path().app_log_dir().ok();
+    let log_tail = log_dir
+        .as_ref()
+        .and_then(|d| std::fs::read_to_string(d.join(format!("{}.log", app.package_info().name))).ok())
+        .map(|t| tail_lines(&t, 20))
+        .unwrap_or_default();
+    let class = mon.class();
+    let s = settings::load(&settings_path(&app));
+    let latest = mon.latest();
+    json!({
+        "app_version": app.package_info().version.to_string(),
+        "os": std::env::consts::OS,
+        "arch": std::env::consts::ARCH,
+        "device_class": class,
+        "energy_model": {
+            "in_use": energy_model::resolve(class, s.energy_idle_w, s.energy_max_w),
+            "defaults": energy_model::defaults(class),
+            "sample_interval_s": energy_model::SAMPLE_INTERVAL_S,
+            "max_sane_watts": energy_model::MAX_SANE_WATTS,
+            "user_override": { "idle": s.energy_idle_w, "max": s.energy_max_w },
+        },
+        "debug_logging": debug_wanted(&app),
+        "shortcut": s.shortcut,
+        "own_cpu_pct": latest.as_ref().map(|l| l.own_cpu_pct),
+        "own_cpu_avg_pct": latest.as_ref().map(|l| l.own_cpu_avg_pct),
+        "battery_raw": battery::raw_reading(),
+        "raw_samples": mon.raw_samples(),
+        "log_dir": log_dir.map(|d| d.display().to_string()),
+        "log_tail": log_tail,
+    })
+}
+
 /// Opens a save dialog and writes the history as JSON. Returns the chosen path,
 /// or None if the user cancelled.
 #[tauri::command]
@@ -349,13 +407,11 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 // arithapar78/ecoprompt: .../releases/latest/download/latest.json
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let debug = std::env::var("ECOPROMPT_DEBUG").map(|v| v == "1").unwrap_or(false);
-    let level = if debug { log::LevelFilter::Debug } else { log::LevelFilter::Info };
 
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
-                .level(level)
+                .level(log::LevelFilter::Debug)
                 .max_file_size(1_000_000)
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(5))
                 .build(),
@@ -383,6 +439,8 @@ pub fn run() {
             set_shortcut,
             get_energy_snapshot,
             get_history,
+            get_diagnostics,
+            set_debug_logging,
             set_energy_params,
             export_history
         ])
@@ -397,6 +455,7 @@ pub fn run() {
         })
         .setup(|app| {
             let handle = app.handle().clone();
+            apply_log_level(debug_wanted(&handle));
             let data_dir = handle.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("ecoprompt"));
             app.manage(monitor::Monitor::new(&data_dir));
             monitor::spawn(handle.clone());
@@ -425,4 +484,18 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tail_lines;
+
+    #[test]
+    fn tail_returns_last_n_lines() {
+        let t = (1..=30).map(|i| format!("l{i}")).collect::<Vec<_>>().join("\n");
+        let v = tail_lines(&t, 20);
+        assert_eq!((v.len(), v[0].as_str(), v[19].as_str()), (20, "l11", "l30"));
+        assert_eq!(tail_lines("a\nb", 20), vec!["a", "b"]);
+        assert!(tail_lines("", 20).is_empty());
+    }
 }

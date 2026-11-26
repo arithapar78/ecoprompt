@@ -4,6 +4,7 @@
   "description": "Capability for the main and toast windows",
   "windows": ["main", "toast"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "log:default"
   ]
 }

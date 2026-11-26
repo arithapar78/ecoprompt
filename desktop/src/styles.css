@@ -95,3 +95,6 @@ kbd { font: inherit; font-weight: 400; opacity: .75; margin-left: 6px; }
 .datalist .tag { font-size: var(--eco-fs-label); color: var(--eco-accent); margin-left: 6px; }
 .shortcut.num { max-width: 90px; flex: none; }
 .shortcut-row { align-items: center; flex-wrap: wrap; }
+.debug { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; padding: var(--eco-pad); z-index: 10; }
+.debug-card { background: var(--eco-surface); border: 1px solid var(--eco-border); border-radius: var(--eco-radius); padding: var(--eco-pad); width: min(900px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: var(--eco-gap); }
+.debug-body { margin: 0; overflow: auto; flex: 1; background: var(--eco-surface-2); border: 1px solid var(--eco-border); border-radius: var(--eco-radius-sm); padding: 10px; font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -126,5 +126,20 @@
       </div>
     </details>
   </main>
+
+  <!-- Hidden diagnostics panel: Cmd/Ctrl+Shift+D. Never contains prompts. -->
+  <aside id="debug-panel" class="debug" role="dialog" aria-modal="true" aria-labelledby="debug-title" hidden>
+    <div class="debug-card">
+      <div class="outhead">
+        <h2 id="debug-title" class="label">Diagnostics</h2>
+        <div>
+          <button id="debug-copy" class="copy" type="button">Copy diagnostics</button>
+          <button id="debug-close" class="copy" type="button">Close</button>
+        </div>
+      </div>
+      <label class="muted"><input id="debug-toggle" type="checkbox" /> Debug logging (more detail in the log file; never logs prompt text)</label>
+      <pre id="debug-body" class="debug-body" tabindex="0">Loading…</pre>
+    </div>
+  </aside>
 </body>
 </html>

@@ -68,3 +68,15 @@ npm run tauri build -- --target universal-apple-darwin
 - Windows builds only through GitHub Actions: `.github/workflows/desktop-release.yml` (repo root).
 - **Release flow:** bump version, `npm run check:versions`, commit, then `git tag desktop-v0.1.0 && git push origin desktop-v0.1.0`. The workflow creates a **draft** release with the Mac `.dmg`, Windows `-setup.exe` + `.msi`, and `SHA256SUMS.txt`. Review and publish the draft by hand.
 - Builds are unsigned: see [docs/INSTALL-UNSIGNED.md](docs/INSTALL-UNSIGNED.md).
+
+## Tests
+
+```sh
+npm test                        # optimizer parity (vendored vs extension) + log-privacy
+(cd src-tauri && cargo test)    # energy model, apps, history, atomic write, battery parser, quick-optimize
+node ../extension/test/optimizer-test.js   # from the repo root: node extension/test/optimizer-test.js
+```
+
+## Debugging
+
+Hidden diagnostics panel: **Cmd/Ctrl+Shift+D** (version, optimizer commit, energy constants, last 10 samples, own CPU, last 20 log lines, "Copy diagnostics"). Full guide, log paths and a symptom table: [docs/DEBUGGING.md](docs/DEBUGGING.md).
