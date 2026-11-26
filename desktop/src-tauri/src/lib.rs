@@ -7,7 +7,7 @@ mod monitor;
 mod quick;
 mod settings;
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -33,6 +33,8 @@ struct AppState {
     pending: Mutex<Option<(u64, String)>>,
     next_id: AtomicU64,
     toast_gen: AtomicU64,
+    /// The "still running in the menu bar" hint is shown once per session.
+    close_hint_shown: AtomicBool,
     shortcut: Mutex<String>,
 }
 
@@ -418,6 +420,12 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 pub fn run() {
 
     tauri::Builder::default()
+        // Must be first. A second launch (double-click in Finder, a second shortcut,
+        // autostart racing a manual start) shows the running app instead of starting a copy.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            log::info!("second launch: showing the running app");
+            show_main(app);
+        }))
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Debug)
@@ -458,7 +466,12 @@ pub fn run() {
             if window.label() == "main" {
                 if let WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
-                    hide_main(window.app_handle());
+                    let app = window.app_handle();
+                    hide_main(app);
+                    // Without this the app looks like it quit.
+                    if !app.state::<AppState>().close_hint_shown.swap(true, Ordering::SeqCst) {
+                        toast(app, &quick::close_hint(cfg!(target_os = "macos")), false);
+                    }
                 }
             }
         })
@@ -478,19 +491,49 @@ pub fn run() {
                 let _ = handle.emit_to("main", "shortcut-error", msg);
             }
 
-            if std::env::args().any(|a| a == "--hidden") {
+            let hidden = std::env::args().any(|a| a == "--hidden");
+            if hidden {
                 hide_main(&handle);
+            }
+
+            // First launch: say where the app lives and what the hotkey is. The toast
+            // page needs a moment to load before it can receive the message.
+            if !hidden {
+                let path = settings_path(&handle);
+                let mut st = settings::load(&path);
+                if !st.seen_welcome {
+                    let msg = quick::welcome_message(&st.shortcut, cfg!(target_os = "macos"));
+                    st.seen_welcome = true;
+                    let _ = settings::save(&path, &st);
+                    let h = handle.clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(Duration::from_millis(2500));
+                        toast(&h, &msg, false);
+                    });
+                }
             }
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
-            // Flush buffered history on quit (it is otherwise written once a minute).
-            if let tauri::RunEvent::Exit = event {
-                if let Some(mon) = app.try_state::<monitor::Monitor>() {
-                    mon.flush();
+            match event {
+                // Flush buffered history on quit (it is otherwise written once a minute).
+                tauri::RunEvent::Exit => {
+                    if let Some(mon) = app.try_state::<monitor::Monitor>() {
+                        mon.flush();
+                    }
                 }
+                // macOS "reopen": the Dock icon was clicked, or the app was opened again
+                // from Finder while it runs in the menu bar with no window.
+                #[cfg(target_os = "macos")]
+                tauri::RunEvent::Reopen { has_visible_windows, .. } => {
+                    log::info!("reopen requested (visible windows: {})", has_visible_windows);
+                    if !has_visible_windows {
+                        show_main(app);
+                    }
+                }
+                _ => {}
             }
         });
 }

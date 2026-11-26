@@ -14,11 +14,13 @@ pub struct Settings {
     pub energy_max_w: Option<f64>,
     /// Verbose logging (also forced on by ECOPROMPT_DEBUG=1). Never logs prompt text.
     pub debug_logging: bool,
+    /// The first-launch welcome toast has been shown.
+    pub seen_welcome: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None, debug_logging: false }
+        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None, debug_logging: false, seen_welcome: false }
     }
 }
 
@@ -52,7 +54,7 @@ mod tests {
     fn roundtrip() {
         let dir = std::env::temp_dir().join(format!("eco-settings-rt-{}", std::process::id()));
         let p = dir.join("settings.json");
-        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None, debug_logging: true };
+        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None, debug_logging: true, seen_welcome: true };
         save(&p, &s).unwrap();
         assert_eq!(load(&p), s);
         assert!(!dir.join("settings.json.tmp").exists());

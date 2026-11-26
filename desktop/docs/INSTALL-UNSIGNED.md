@@ -26,7 +26,7 @@ If macOS only offers **Done** / **Move to Trash** (newer macOS versions):
 3. Scroll down to the message about "EcoPrompt" being blocked and click **Open Anyway**.
 4. Enter your password, then click **Open**.
 
-EcoPrompt lives in the menu bar (top right). Closing its window does not quit it.
+EcoPrompt lives in the menu bar (top right). Closing its window does not quit it, and a small note tells you so. **Can't see the icon?** A crowded menu bar can hide it behind the camera notch. Just open EcoPrompt again from Applications and its window comes back. To quit, use the menu bar icon.
 
 **If macOS says the app "is damaged":** that is the same unsigned-app check. Open Terminal and run `xattr -cr /Applications/EcoPrompt.app`, then open the app again.
 

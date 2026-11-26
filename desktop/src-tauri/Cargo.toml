@@ -1,6 +1,6 @@
 [package]
 name = "desktop"
-version = "0.1.1"
+version = "0.1.2"
 description = "EcoPrompt Desktop"
 authors = ["LearnTAV"]
 edition = "2024"
@@ -40,6 +40,7 @@ strip = true
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
 
 [target."cfg(windows)".dependencies]
 windows-sys = { version = "0.61", features = ["Win32_System_Power"] }

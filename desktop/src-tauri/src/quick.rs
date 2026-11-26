@@ -21,6 +21,40 @@ pub fn classify(clip: Option<&str>) -> Result<&str, String> {
     }
 }
 
+/// "CommandOrControl+Shift+E" -> "⌘⇧E" on Mac, "Ctrl+Shift+E" elsewhere.
+pub fn pretty_shortcut(accel: &str, mac: bool) -> String {
+    let parts: Vec<String> = accel
+        .split('+')
+        .map(|p| match (p, mac) {
+            ("CommandOrControl" | "CmdOrCtrl", true) => "\u{2318}".to_string(),
+            ("CommandOrControl" | "CmdOrCtrl", false) => "Ctrl".to_string(),
+            ("Command" | "Cmd" | "Super", true) => "\u{2318}".to_string(),
+            ("Alt" | "Option", true) => "\u{2325}".to_string(),
+            ("Shift", true) => "\u{21E7}".to_string(),
+            ("Control" | "Ctrl", true) => "\u{2303}".to_string(),
+            (other, _) => other.to_string(),
+        })
+        .collect();
+    if mac { parts.concat() } else { parts.join("+") }
+}
+
+/// Shown once, the first time the app is launched.
+pub fn welcome_message(accel: &str, mac: bool) -> String {
+    format!(
+        "EcoPrompt is running in your {}. Copy text, press {}, then paste.",
+        if mac { "menu bar" } else { "system tray" },
+        pretty_shortcut(accel, mac)
+    )
+}
+
+/// Shown the first time the main window is closed in a session.
+pub fn close_hint(mac: bool) -> String {
+    format!(
+        "EcoPrompt is still running in the {}. Click its icon to reopen or quit.",
+        if mac { "menu bar" } else { "system tray" }
+    )
+}
+
 /// Log lines for quick-optimize. They take the text only to COUNT it: lengths and
 /// token counts go in the log, never the text itself (see the privacy test).
 pub fn describe_request(id: u64, text: &str) -> String {
@@ -79,6 +113,20 @@ impl UndoSlot {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shortcut_and_messages_read_naturally() {
+        assert_eq!(pretty_shortcut("CommandOrControl+Shift+E", true), "\u{2318}\u{21E7}E");
+        assert_eq!(pretty_shortcut("CommandOrControl+Shift+E", false), "Ctrl+Shift+E");
+        assert_eq!(pretty_shortcut("Alt+Shift+O", true), "\u{2325}\u{21E7}O");
+        assert_eq!(pretty_shortcut("CommandOrControl+F5", false), "Ctrl+F5");
+        assert_eq!(
+            welcome_message("CommandOrControl+Shift+E", true),
+            "EcoPrompt is running in your menu bar. Copy text, press \u{2318}\u{21E7}E, then paste."
+        );
+        assert!(welcome_message("CommandOrControl+Shift+E", false).contains("system tray"));
+        assert!(close_hint(true).contains("menu bar") && close_hint(false).contains("system tray"));
+    }
 
     #[test]
     fn log_lines_never_contain_the_clipboard_text() {

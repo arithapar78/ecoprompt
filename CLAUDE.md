@@ -98,7 +98,7 @@ CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=
 | `desktop/src-tauri/src/monitor.rs` | 30 s sampler (CPU + processes only), battery cross-check, raw samples for the debug panel |
 | `desktop/src-tauri/src/history.rs`, `fsutil.rs` | Ring buffer + daily rollup, and the one atomic-write function (every file write goes through it) |
 | `desktop/src-tauri/src/quick.rs` | Quick-optimize decisions, Undo slot, and the only builders of log text derived from the clipboard |
-| `desktop/src-tauri/src/lib.rs` | Tray, hotkey, toast window, commands, diagnostics |
+| `desktop/src-tauri/src/lib.rs` | Tray, hotkey, toast window, commands, diagnostics. Mac menu-bar behavior: closing the window hides it (Dock icon hidden), macOS `Reopen` and the single-instance plugin bring it back, first launch shows a welcome toast |
 
 **Sync-optimizer rule.** The desktop optimizer must give byte-identical results to the extension. Change the optimizer only in `extension/lib/`, commit it, then run `npm run sync:optimizer` in `desktop/` (it refuses to run if those files have uncommitted changes) and `npm test`. `SYNC.json` records the source commit and SHA-256s.
 
@@ -112,6 +112,6 @@ CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=
 
 **Debugging:** `desktop/docs/DEBUGGING.md`. Hidden debug panel: Cmd/Ctrl+Shift+D.
 
-**Release flow.** `npm run version:set -- X.Y.Z` (package.json is the version source), commit, then `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`. `.github/workflows/desktop-release.yml` builds the Mac universal `.dmg` and Windows NSIS `-setup.exe` + `.msi` creates a draft GitHub Release with `SHA256SUMS.txt`, checks the assets, then **publishes** it automatically (a hyphenated version is published as a prerelease). Builds are unsigned (`desktop/docs/INSTALL-UNSIGNED.md`). The download buttons on learntav.com stay on "Coming soon" until `COMING_SOON` is set to `false` in `Website/assets/js/ecoprompt-download.js` (a separate repo, `arithapar78/learntav`).
+**Release flow.** `npm run version:set -- X.Y.Z` (package.json is the version source), commit, then `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`. `.github/workflows/desktop-release.yml` builds the Mac universal `.dmg` and Windows NSIS `-setup.exe` + `.msi`, creates a draft GitHub Release with `SHA256SUMS.txt`, checks the assets, then **publishes** it automatically (a hyphenated version is published as a prerelease). Builds are unsigned (`desktop/docs/INSTALL-UNSIGNED.md`). The download buttons on learntav.com are live (`COMING_SOON` is `false` in `Website/assets/js/ecoprompt-download.js`, a separate repo, `arithapar78/learntav`) and always offer the newest published `desktop-v*` release, so a release needs no website change.
 
 **Repo note.** This repo is now `arithapar78/ecoprompt` on GitHub (the old `power-tracker-v3` name redirects).
