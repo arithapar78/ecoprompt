@@ -1,0 +1,8 @@
+# Byte-exact files: the desktop parity test compares SHA-256 hashes of the vendored
+# optimizer (desktop/src/vendor/optimizer/SYNC.json) against the extension originals.
+# Windows checkouts default to CRLF, which changes the hashes and fails the test.
+# Force LF so every OS sees identical bytes.
+desktop/src/vendor/** text eol=lf
+extension/lib/** text eol=lf
+desktop/scripts/** text eol=lf
+desktop/test/** text eol=lf
