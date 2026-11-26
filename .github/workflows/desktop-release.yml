@@ -1,7 +1,10 @@
 # EcoPrompt Desktop release.
 # Trigger: push a tag like desktop-v0.1.0 (must equal the version in desktop/package.json).
-# Result: a DRAFT GitHub Release with a universal Mac .dmg, a Windows NSIS -setup.exe,
-# an .msi, and SHA256SUMS.txt. Review the draft, then publish it by hand.
+# Result: a universal Mac .dmg, a Windows NSIS -setup.exe, an .msi and SHA256SUMS.txt,
+# attached to a GitHub Release. The release is created as a draft, and the final job
+# publishes it only after every build succeeded and the assets pass basic checks.
+# A version with a hyphen (desktop-v0.2.0-beta) is published as a prerelease, which the
+# learntav.com download page ignores.
 # Builds are UNSIGNED (see desktop/docs/INSTALL-UNSIGNED.md).
 name: desktop-release
 
@@ -41,6 +44,15 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           VERSION="${TAG#desktop-v}"
+          PRE=false
+          case "$VERSION" in *-*) PRE=true ;; esac
+          # A failed earlier attempt may have left a draft for this tag. Start clean
+          # so there is exactly one release for it.
+          for old in $(gh api "repos/${{ github.repository }}/releases" --paginate \
+              --jq ".[] | select(.draft and .tag_name == \"$TAG\") | .id"); do
+            echo "deleting stale draft $old"
+            gh api -X DELETE "repos/${{ github.repository }}/releases/$old"
+          done
           cat > body.md <<'NOTES'
           EcoPrompt Desktop optimizes prompts anywhere and estimates your computer's energy use. Everything stays on your device.
 
@@ -53,7 +65,7 @@ jobs:
             -f name="EcoPrompt Desktop v$VERSION" \
             -F body=@body.md \
             -F draft=true \
-            -F prerelease=false \
+            -F prerelease="$PRE" \
             --jq .id)
           echo "release_id=$ID" >> "$GITHUB_OUTPUT"
 
@@ -133,3 +145,25 @@ jobs:
             -H "Content-Type: text/plain" \
             --data-binary @SHA256SUMS.txt \
             "https://uploads.github.com/repos/$REPO/releases/$RID/assets?name=SHA256SUMS.txt"
+
+  publish:
+    needs: [create-release, checksums]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check assets, then publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RID: ${{ needs.create-release.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPO/releases/$RID/assets" --paginate \
+            --jq '.[] | "\(.name) \(.size)"' > assets.txt
+          cat assets.txt
+          for pat in '\.dmg [0-9]' '-setup\.exe [0-9]' '^SHA256SUMS\.txt [0-9]'; do
+            grep -Eq "$pat" assets.txt || { echo "missing asset matching: $pat"; exit 1; }
+          done
+          # Installers must be real files, not empty or truncated uploads.
+          awk '$1 !~ /^SHA256SUMS/ && $2 < 1000000 { print "too small: " $0; bad = 1 } END { exit bad }' assets.txt
+          gh api -X PATCH "repos/$REPO/releases/$RID" -F draft=false -f make_latest=false
+          echo "published release $RID"

@@ -112,6 +112,6 @@ CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=
 
 **Debugging:** `desktop/docs/DEBUGGING.md`. Hidden debug panel: Cmd/Ctrl+Shift+D.
 
-**Release flow.** `npm run version:set -- X.Y.Z` (package.json is the version source), commit, then `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`. `.github/workflows/desktop-release.yml` builds the Mac universal `.dmg` and Windows NSIS `-setup.exe` + `.msi` and creates a **draft** GitHub Release with `SHA256SUMS.txt`. Publish the draft by hand. Builds are unsigned (`desktop/docs/INSTALL-UNSIGNED.md`). The download buttons on learntav.com stay on "Coming soon" until `COMING_SOON` is set to `false` in `Website/assets/js/ecoprompt-download.js` (a separate repo, `arithapar78/learntav`).
+**Release flow.** `npm run version:set -- X.Y.Z` (package.json is the version source), commit, then `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`. `.github/workflows/desktop-release.yml` builds the Mac universal `.dmg` and Windows NSIS `-setup.exe` + `.msi` creates a draft GitHub Release with `SHA256SUMS.txt`, checks the assets, then **publishes** it automatically (a hyphenated version is published as a prerelease). Builds are unsigned (`desktop/docs/INSTALL-UNSIGNED.md`). The download buttons on learntav.com stay on "Coming soon" until `COMING_SOON` is set to `false` in `Website/assets/js/ecoprompt-download.js` (a separate repo, `arithapar78/learntav`).
 
 **Repo note.** This repo is now `arithapar78/ecoprompt` on GitHub (the old `power-tracker-v3` name redirects).

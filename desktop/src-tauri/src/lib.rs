@@ -13,7 +13,6 @@ use std::time::{Duration, Instant};
 
 use serde_json::json;
 use tauri::{
-    image::Image,
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindow,
@@ -374,10 +373,20 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         &[&open, &quick, &undo, &login, &PredefinedMenuItem::separator(app)?, &quit],
     )?;
 
-    let icon = Image::from_bytes(include_bytes!("../icons/tray/tray-template.png"))?;
-    TrayIconBuilder::with_id("main")
-        .icon(icon)
-        .icon_as_template(true) // macOS: monochrome template image
+    // macOS: a monochrome TEMPLATE image, recolored by the system for light/dark
+    // menu bars. Windows (and others): the colored app icon, because a black
+    // template glyph would be nearly invisible on a dark taskbar.
+    #[cfg(target_os = "macos")]
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray/tray-template.png"))?;
+    #[cfg(not(target_os = "macos"))]
+    let icon = app
+        .default_window_icon()
+        .cloned()
+        .ok_or_else(|| tauri::Error::AssetNotFound("default window icon".into()))?;
+    let builder = TrayIconBuilder::with_id("main").icon(icon);
+    #[cfg(target_os = "macos")]
+    let builder = builder.icon_as_template(true);
+    builder
         .tooltip("EcoPrompt")
         .menu(&menu)
         .show_menu_on_left_click(true)

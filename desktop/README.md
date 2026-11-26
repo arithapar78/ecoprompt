@@ -66,7 +66,7 @@ npm run tauri build -- --target universal-apple-darwin
 
 - Building the DMG from a terminal that cannot control Finder fails at "AppleEvent timed out". Run with `CI=true npm run tauri build -- …`; this only skips the DMG window layout.
 - Windows builds only through GitHub Actions: `.github/workflows/desktop-release.yml` (repo root).
-- **Release flow:** bump version, `npm run check:versions`, commit, then `git tag desktop-v0.1.0 && git push origin desktop-v0.1.0`. The workflow creates a **draft** release with the Mac `.dmg`, Windows `-setup.exe` + `.msi`, and `SHA256SUMS.txt`. Review and publish the draft by hand.
+- **Release flow:** bump the version (`npm run version:set -- X.Y.Z`), `npm run check:versions`, commit, then `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`. The workflow creates a draft release, builds the Mac `.dmg` and Windows `-setup.exe` + `.msi`, uploads `SHA256SUMS.txt`, checks the assets, and **publishes** the release. A version with a hyphen (e.g. `0.2.0-beta`) is published as a prerelease, which the website ignores. Re-pushing the same tag cleans up any stale draft first.
 - Builds are unsigned: see [docs/INSTALL-UNSIGNED.md](docs/INSTALL-UNSIGNED.md).
 
 ## Tests
