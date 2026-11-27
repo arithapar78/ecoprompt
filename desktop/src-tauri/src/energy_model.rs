@@ -13,8 +13,8 @@
 //!
 //! These are rough, device-class-level figures, not measurements. The UI labels
 //! them "estimate". On a Mac laptop on battery the app also reads the real
-//! total draw (see `battery.rs`) and logs measured/estimate so P_max can be
-//! tuned later.
+//! total system power (see `battery.rs`) and logs measured/estimate so the
+//! constants can be re-tuned (see docs/ENERGY-CALIBRATION.md).
 
 /// Sampling period. MUST match the extension's `REPORT_PERIOD_MS` (30000 ms)
 /// and `SAMPLE_INTERVAL_S` in extension/lib/storage.js.
@@ -24,10 +24,22 @@ pub const SAMPLE_INTERVAL_S: u64 = 30;
 /// `MAX_SANE_WATTS`.
 pub const MAX_SANE_WATTS: f64 = 2000.0;
 
-/// Laptop defaults. Source: the Phase 3 build spec (typical light-load vs
-/// sustained all-core draw for a modern thin-and-light; not measured here).
-pub const LAPTOP_IDLE_W: f64 = 4.0;
-pub const LAPTOP_MAX_W: f64 = 40.0;
+/// Laptop defaults. Source: CALIBRATED ON ONE MACHINE, a MacBook Pro 14" (Mac15,7,
+/// 12-core M3 Pro, display on) running on battery, 2026-11-27. Total system power
+/// came from the SMC's `PowerTelemetryData.SystemLoad` while holding 0..12 SIMD-heavy
+/// workers (`desktop/scripts/calibrate-energy.sh`; method and data in
+/// `desktop/docs/ENERGY-CALIBRATION.md`). Measured: about 5-6 W at light use
+/// (10-15% CPU), about 16 W at 44%, about 24 W at 73% and above. Best fit with a
+/// physical idle floor: 5 W idle, 32 W max. That cut the fit error against the old
+/// 4 W / 40 W defaults from about 4.5-6.3 W to about 3.2 W on that machine.
+///
+/// Limits: one machine, so other laptops (thin Intel ultrabooks, big workstations)
+/// will differ; and power depends on how hard the work is, not only how busy the
+/// CPU is (the same 30-40% utilization measured both 7 W and 16 W), so any
+/// utilization-only model carries a few watts of error. Users can override both
+/// numbers in Settings.
+pub const LAPTOP_IDLE_W: f64 = 5.0;
+pub const LAPTOP_MAX_W: f64 = 32.0;
 
 /// Desktop defaults. Source: the Phase 3 build spec (typical mid-range tower
 /// without a heavy GPU load; not measured here).
@@ -136,7 +148,7 @@ mod tests {
 
     #[test]
     fn defaults_per_class_and_resolve_fallback() {
-        assert_eq!(defaults(DeviceClass::Laptop), Params { idle: 4.0, max: 40.0 });
+        assert_eq!(defaults(DeviceClass::Laptop), Params { idle: 5.0, max: 32.0 });
         assert_eq!(defaults(DeviceClass::Desktop), Params { idle: 30.0, max: 150.0 });
         assert_eq!(resolve(DeviceClass::Laptop, Some(5.0), Some(60.0)), Params { idle: 5.0, max: 60.0 });
         // max <= idle is rejected -> defaults

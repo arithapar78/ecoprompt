@@ -1,7 +1,13 @@
-//! Device class + (macOS only) the real total draw while on battery.
-//! `ioreg -rn AppleSmartBattery` needs no sudo. `InstantAmperage` is a signed
-//! value printed as an unsigned 64-bit number, so a discharge of -483 mA shows
-//! as 18446744073709551133.
+//! Device class + (macOS only) the real total system power while on battery.
+//! `ioreg -rn AppleSmartBattery` needs no sudo.
+//!
+//! Preferred source: `PowerTelemetryData.SystemLoad` (milliwatts, total system
+//! power). Fallback: voltage x `InstantAmperage`. `InstantAmperage` is a signed
+//! value printed as an unsigned 64-bit number (a discharge of -483 mA shows as
+//! 18446744073709551133), and it is UNRELIABLE under load: measured reading exactly
+//! 0 while the CPU was busy, with the voltage still moving. SystemLoad kept
+//! working. Both refresh only every ~10-60 s, and SystemLoad occasionally reads 0
+//! (a telemetry miss), which is treated as "no reading".
 
 use crate::energy_model::DeviceClass;
 
@@ -10,16 +16,25 @@ pub struct Reading {
     pub voltage_mv: f64,
     pub amperage_ma: i64,
     pub external_connected: bool,
+    /// `PowerTelemetryData.SystemLoad`, if present and non-zero.
+    pub system_load_mw: Option<u64>,
 }
 
 impl Reading {
-    /// Real system draw in watts, only while discharging on battery.
+    /// Real total system power in watts, only while running on battery (the case
+    /// that has been verified against a real machine).
     pub fn discharge_watts(&self) -> Option<f64> {
-        if self.external_connected || self.amperage_ma >= 0 {
+        if self.external_connected {
             return None;
         }
-        let w = self.voltage_mv * (-self.amperage_ma) as f64 / 1_000_000.0;
-        (w.is_finite() && w > 0.0 && w < crate::energy_model::MAX_SANE_WATTS).then_some(w)
+        let sane = |w: f64| (w.is_finite() && w > 0.0 && w < crate::energy_model::MAX_SANE_WATTS).then_some(w);
+        if let Some(w) = self.system_load_mw.and_then(|mw| sane(mw as f64 / 1000.0)) {
+            return Some(w);
+        }
+        if self.amperage_ma >= 0 {
+            return None;
+        }
+        sane(self.voltage_mv * (-self.amperage_ma) as f64 / 1_000_000.0)
     }
 }
 
@@ -30,11 +45,21 @@ fn field<'a>(text: &'a str, key: &str) -> Option<&'a str> {
     text.lines().find_map(|l| l.trim_start().strip_prefix(prefix.as_str()).map(str::trim))
 }
 
+/// `"SystemLoad"=7644` inside the one-line `PowerTelemetryData = {...}` block. The
+/// leading quote keeps it from matching `"AccumulatedSystemLoad"=` or
+/// `"SystemLoadAccumulatorCount"=`.
+fn system_load_mw(text: &str) -> Option<u64> {
+    let key = "\"SystemLoad\"=";
+    let rest = &text[text.find(key)? + key.len()..];
+    let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+    digits.parse::<u64>().ok().filter(|&mw| mw > 0)
+}
+
 pub fn parse_ioreg(text: &str) -> Option<Reading> {
     let voltage_mv: f64 = field(text, "Voltage")?.parse().ok()?;
     let raw: u64 = field(text, "InstantAmperage")?.parse().ok()?;
     let external_connected = field(text, "ExternalConnected")? == "Yes";
-    Some(Reading { voltage_mv, amperage_ma: raw as i64, external_connected })
+    Some(Reading { voltage_mv, amperage_ma: raw as i64, external_connected, system_load_mw: system_load_mw(text) })
 }
 
 #[cfg(target_os = "macos")]
@@ -111,6 +136,7 @@ mod tests {
       "InstantAmperage" = 18446744073709551133
       "BatteryInstalled" = Yes
       "Voltage" = 12108
+      "PowerTelemetryData" = {"AccumulatedSystemLoad"=335138207,"SystemLoad"=7644,"SystemLoadAccumulatorCount"=146030,"BatteryPower"=18446744073709543972}
     }"#;
 
     #[test]
@@ -119,15 +145,42 @@ mod tests {
         assert_eq!(r.voltage_mv, 12108.0); // not the nested 12113
         assert_eq!(r.amperage_ma, -483);
         assert!(!r.external_connected);
-        let w = r.discharge_watts().unwrap();
-        assert!((w - 5.848).abs() < 0.01, "{w}");
+        assert_eq!(r.system_load_mw, Some(7644)); // not the accumulator or its count
+        // SystemLoad is preferred over voltage x amperage (which would give 5.85 W).
+        assert!((r.discharge_watts().unwrap() - 7.644).abs() < 1e-9);
         assert_eq!(field(SAMPLE, "BatteryInstalled"), Some("Yes"));
+    }
+
+    fn reading(amperage_ma: i64, external_connected: bool, system_load_mw: Option<u64>) -> Reading {
+        Reading { voltage_mv: 12000.0, amperage_ma, external_connected, system_load_mw }
     }
 
     #[test]
     fn no_reading_when_plugged_in_or_charging() {
-        assert_eq!(Reading { voltage_mv: 12000.0, amperage_ma: -500, external_connected: true }.discharge_watts(), None);
-        assert_eq!(Reading { voltage_mv: 12000.0, amperage_ma: 800, external_connected: false }.discharge_watts(), None);
+        assert_eq!(reading(-500, true, Some(9000)).discharge_watts(), None);
+        assert_eq!(reading(800, false, None).discharge_watts(), None);
+    }
+
+    #[test]
+    fn works_when_amperage_reads_zero_under_load() {
+        // Observed on a real MacBook: InstantAmperage = 0 while all cores were busy.
+        let r = reading(0, false, Some(24_300));
+        assert!((r.discharge_watts().unwrap() - 24.3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn zero_or_missing_system_load_falls_back_to_amperage() {
+        let w = reading(-500, false, None).discharge_watts().unwrap();
+        assert!((w - 6.0).abs() < 1e-9); // 12 V x 0.5 A
+        assert_eq!(reading(-500, false, Some(0)).discharge_watts(), reading(-500, false, None).discharge_watts());
+        assert_eq!(reading(0, false, None).discharge_watts(), None);
+    }
+
+    #[test]
+    fn system_load_key_does_not_match_look_alikes() {
+        assert_eq!(system_load_mw("\"AccumulatedSystemLoad\"=999,\"SystemLoadAccumulatorCount\"=5"), None);
+        assert_eq!(system_load_mw("\"SystemLoad\"=0,"), None);
+        assert_eq!(system_load_mw("\"SystemLoad\"=1234}"), Some(1234));
     }
 
     #[test]

@@ -93,9 +93,9 @@ CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=
 |---|---|
 | `desktop/src/` | Plain HTML/CSS/JS, no framework or bundler. `engine.js` is the single optimizer interface (`engine: 'rules'` today; the seam for a future `'local-llm'`) |
 | `desktop/src/vendor/optimizer/` | **Vendored copy** of `extension/lib/{prompt-rules-db,token-counter,prompt-optimizer,prompt-generator}.js`. Never edit by hand |
-| `desktop/src-tauri/src/energy_model.rs` | **Every energy constant and the formulas.** Estimate only; `SAMPLE_INTERVAL_S` (30) must match the extension's `REPORT_PERIOD_MS` |
+| `desktop/src-tauri/src/energy_model.rs` | **Every energy constant and the formulas.** Estimate only; `SAMPLE_INTERVAL_S` (30) must match the extension's `REPORT_PERIOD_MS`. Laptop defaults (5 W idle, 32 W max) are calibrated on one MacBook; method, data and limits in `desktop/docs/ENERGY-CALIBRATION.md`, re-runnable with `desktop/scripts/calibrate-energy.sh` |
 | `desktop/src-tauri/src/ai_apps.rs` | Process name to group table (exact match on normalized name; Mac helper processes roll up) |
-| `desktop/src-tauri/src/monitor.rs` | 30 s sampler (CPU + processes only), battery cross-check, raw samples for the debug panel |
+| `desktop/src-tauri/src/monitor.rs` | 30 s sampler (CPU + processes only), battery cross-check (Mac laptops on battery: `SystemLoad` from `ioreg`, because `InstantAmperage` reads 0 under load), raw samples for the debug panel |
 | `desktop/src-tauri/src/history.rs`, `fsutil.rs` | Ring buffer + daily rollup, and the one atomic-write function (every file write goes through it) |
 | `desktop/src-tauri/src/quick.rs` | Quick-optimize decisions, Undo slot, and the only builders of log text derived from the clipboard |
 | `desktop/src-tauri/src/lib.rs` | Tray, hotkey, toast window, commands, diagnostics. Mac menu-bar behavior: closing the window hides it (Dock icon hidden), macOS `Reopen` and the single-instance plugin bring it back, first launch shows a welcome toast |
