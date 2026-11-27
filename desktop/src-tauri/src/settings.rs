@@ -16,11 +16,14 @@ pub struct Settings {
     pub debug_logging: bool,
     /// The first-launch welcome toast has been shown.
     pub seen_welcome: bool,
+    /// macOS: hide the Dock icon while the main window is closed (menu-bar only).
+    /// Off by default so the app stays reachable if the menu-bar icon is hidden.
+    pub hide_dock_when_closed: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None, debug_logging: false, seen_welcome: false }
+        Self { shortcut: DEFAULT_SHORTCUT.into(), energy_idle_w: None, energy_max_w: None, debug_logging: false, seen_welcome: false, hide_dock_when_closed: false }
     }
 }
 
@@ -54,7 +57,7 @@ mod tests {
     fn roundtrip() {
         let dir = std::env::temp_dir().join(format!("eco-settings-rt-{}", std::process::id()));
         let p = dir.join("settings.json");
-        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None, debug_logging: true, seen_welcome: true };
+        let s = Settings { shortcut: "Alt+Shift+O".into(), energy_idle_w: Some(5.0), energy_max_w: None, debug_logging: true, seen_welcome: true, hide_dock_when_closed: true };
         save(&p, &s).unwrap();
         assert_eq!(load(&p), s);
         assert!(!dir.join("settings.json.tmp").exists());

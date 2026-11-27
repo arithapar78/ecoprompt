@@ -96,7 +96,18 @@ if (tauri) {
   };
 
   let current = '';
-  invoke('get_settings').then((s) => { current = s.shortcut; shortcutInput.value = pretty(current); });
+  invoke('get_settings').then((s) => {
+    current = s.shortcut;
+    shortcutInput.value = pretty(current);
+    if (IS_MAC) {
+      $('dock-setting').hidden = false;
+      $('hide-dock').checked = !!s.hide_dock_when_closed;
+    }
+  });
+  $('hide-dock').addEventListener('change', async (e) => {
+    try { await invoke('set_hide_dock', { enabled: e.target.checked }); }
+    catch (err) { e.target.checked = !e.target.checked; }
+  });
 
   listen('shortcut-error', (e) => {
     $('settings').open = true;

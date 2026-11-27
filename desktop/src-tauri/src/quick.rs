@@ -48,11 +48,15 @@ pub fn welcome_message(accel: &str, mac: bool) -> String {
 }
 
 /// Shown the first time the main window is closed in a session.
-pub fn close_hint(mac: bool) -> String {
-    format!(
-        "EcoPrompt is still running in the {}. Click its icon to reopen or quit.",
-        if mac { "menu bar" } else { "system tray" }
-    )
+pub fn close_hint(mac: bool, dock_visible: bool) -> String {
+    if mac && dock_visible {
+        "EcoPrompt is still running. Click its Dock or menu bar icon to reopen.".to_string()
+    } else {
+        format!(
+            "EcoPrompt is still running in the {}. Click its icon to reopen or quit.",
+            if mac { "menu bar" } else { "system tray" }
+        )
+    }
 }
 
 /// Log lines for quick-optimize. They take the text only to COUNT it: lengths and
@@ -125,7 +129,10 @@ mod tests {
             "EcoPrompt is running in your menu bar. Copy text, press \u{2318}\u{21E7}E, then paste."
         );
         assert!(welcome_message("CommandOrControl+Shift+E", false).contains("system tray"));
-        assert!(close_hint(true).contains("menu bar") && close_hint(false).contains("system tray"));
+        assert!(close_hint(true, false).contains("menu bar") && close_hint(false, false).contains("system tray"));
+        assert!(close_hint(true, true).contains("Dock"));
+        // Dock wording only applies on a Mac.
+        assert!(!close_hint(false, true).contains("Dock"));
     }
 
     #[test]

@@ -50,13 +50,21 @@ fn show_main(app: &AppHandle) {
     }
 }
 
+fn hide_dock_wanted(app: &AppHandle) -> bool {
+    cfg!(target_os = "macos") && settings::load(&settings_path(app)).hide_dock_when_closed
+}
+
 fn hide_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.hide();
     }
-    // Hide the Dock icon while only the tray is visible.
+    // By default the Dock icon stays, so the app is always reachable (a crowded menu
+    // bar can hide the tray icon behind the notch). Opt-in: hide it while only the
+    // tray is visible.
     #[cfg(target_os = "macos")]
-    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+    if hide_dock_wanted(app) {
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+    }
 }
 
 fn create_toast_window(app: &AppHandle) -> tauri::Result<WebviewWindow> {
@@ -230,6 +238,31 @@ pub(crate) fn settings_path(app: &AppHandle) -> std::path::PathBuf {
 #[tauri::command]
 fn get_settings(app: AppHandle) -> settings::Settings {
     settings::load(&settings_path(&app))
+}
+
+/// macOS: whether to hide the Dock icon while the main window is closed.
+#[tauri::command]
+fn set_hide_dock(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let path = settings_path(&app);
+    let mut s = settings::load(&path);
+    s.hide_dock_when_closed = enabled;
+    settings::save(&path, &s).map_err(|e| format!("Couldn't save settings: {e}"))?;
+    #[cfg(target_os = "macos")]
+    {
+        let window_hidden = app
+            .get_webview_window("main")
+            .and_then(|w| w.is_visible().ok())
+            .map(|v| !v)
+            .unwrap_or(false);
+        let policy = if enabled && window_hidden {
+            tauri::ActivationPolicy::Accessory
+        } else {
+            tauri::ActivationPolicy::Regular
+        };
+        let _ = app.set_activation_policy(policy);
+    }
+    log::info!("hide Dock icon when closed: {}", enabled);
+    Ok(())
 }
 
 #[tauri::command]
@@ -454,6 +487,7 @@ pub fn run() {
             undo_quick,
             get_settings,
             set_shortcut,
+            set_hide_dock,
             get_energy_snapshot,
             get_history,
             get_diagnostics,
@@ -470,7 +504,7 @@ pub fn run() {
                     hide_main(app);
                     // Without this the app looks like it quit.
                     if !app.state::<AppState>().close_hint_shown.swap(true, Ordering::SeqCst) {
-                        toast(app, &quick::close_hint(cfg!(target_os = "macos")), false);
+                        toast(app, &quick::close_hint(cfg!(target_os = "macos"), !hide_dock_wanted(app)), false);
                     }
                 }
             }

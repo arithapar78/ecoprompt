@@ -40,7 +40,7 @@ node ../extension/test/optimizer-test.js   # extension's own tests (run from rep
 
 ## Tray and quick optimize
 
-- Runs from the menu bar / tray. Closing the window hides it; Quit is in the tray menu.
+- Runs from the menu bar / tray. Closing the window hides it; Quit is in the tray menu. On Mac the Dock icon stays by default so the app is always reachable (Settings can hide it).
 - Default shortcut `Cmd+Shift+E` (Mac) / `Ctrl+Shift+E` (Windows); change it under Settings in the main window. Stored in `settings.json` in the app config dir.
 - Flow: Rust reads the clipboard, asks the (hidden) webview to run the rules optimizer, writes the result back, shows a toast with Undo (30 s). Clipboard only: no keystroke simulation, so no Accessibility permission.
 - Logs: `~/Library/Logs/com.learntav.ecoprompt/`. `ECOPROMPT_DEBUG=1` for debug level. Prompt text is never logged.

@@ -98,7 +98,7 @@ CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=
 | `desktop/src-tauri/src/monitor.rs` | 30 s sampler (CPU + processes only), battery cross-check (Mac laptops on battery: `SystemLoad` from `ioreg`, because `InstantAmperage` reads 0 under load), raw samples for the debug panel |
 | `desktop/src-tauri/src/history.rs`, `fsutil.rs` | Ring buffer + daily rollup, and the one atomic-write function (every file write goes through it) |
 | `desktop/src-tauri/src/quick.rs` | Quick-optimize decisions, Undo slot, and the only builders of log text derived from the clipboard |
-| `desktop/src-tauri/src/lib.rs` | Tray, hotkey, toast window, commands, diagnostics. Mac menu-bar behavior: closing the window hides it (Dock icon hidden), macOS `Reopen` and the single-instance plugin bring it back, first launch shows a welcome toast |
+| `desktop/src-tauri/src/lib.rs` | Tray, hotkey, toast window, commands, diagnostics. Mac behavior: closing the window hides it and the Dock icon STAYS by default (opt-in Settings checkbox `hide_dock_when_closed` makes it menu-bar only), macOS `Reopen` and the single-instance plugin bring the window back, first launch shows a welcome toast |
 
 **Sync-optimizer rule.** The desktop optimizer must give byte-identical results to the extension. Change the optimizer only in `extension/lib/`, commit it, then run `npm run sync:optimizer` in `desktop/` (it refuses to run if those files have uncommitted changes) and `npm test`. `SYNC.json` records the source commit and SHA-256s.
 
