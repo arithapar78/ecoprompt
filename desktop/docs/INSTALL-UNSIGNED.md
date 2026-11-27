@@ -38,7 +38,7 @@ If your browser warns when downloading, choose **Keep** (Edge/Chrome) first.
 
 ## Privacy
 
-No account, no tracking, no network calls. Your prompts and your energy history stay on your computer.
+No account, no tracking. Your prompts and your energy history stay on your computer. The app only goes online if you click **Check for updates** in Settings, and then it only downloads one small file from GitHub.
 
 ## Uninstall
 

@@ -109,6 +109,25 @@ if (tauri) {
     catch (err) { e.target.checked = !e.target.checked; }
   });
 
+  // Updates: only when the user clicks. Never automatic.
+  const updMsg = $('upd-msg'), updCheck = $('upd-check'), updInstall = $('upd-install');
+  const updSay = (t, error = false) => { updMsg.textContent = t; updMsg.classList.toggle('error', error); };
+  updCheck.addEventListener('click', async () => {
+    updCheck.disabled = true; updInstall.hidden = true; updSay('Checking…');
+    try {
+      const u = await invoke('check_update');
+      if (u) { updSay(`Version ${u.version} is available.`); updInstall.hidden = false; }
+      else updSay('You have the latest version.');
+    } catch (err) {
+      updSay('Could not check for updates. Check your connection, or download the latest version from learntav.com.', true);
+    } finally { updCheck.disabled = false; }
+  });
+  updInstall.addEventListener('click', async () => {
+    updInstall.disabled = true; updCheck.disabled = true; updSay('Downloading and installing…');
+    try { await invoke('install_update'); }
+    catch (err) { updSay('Update failed. Try again, or download the latest version from learntav.com.', true); updInstall.disabled = false; updCheck.disabled = false; }
+  });
+
   listen('shortcut-error', (e) => {
     $('settings').open = true;
     say(e.payload, true);

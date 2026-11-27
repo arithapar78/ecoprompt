@@ -116,6 +116,15 @@
         <p class="muted">Off by default, so you can always reopen EcoPrompt from the Dock, even if the menu bar icon is hidden.</p>
       </div>
       <div class="setting">
+        <span class="label">Updates</span>
+        <div class="shortcut-row">
+          <button id="upd-check" class="copy" type="button">Check for updates</button>
+          <button id="upd-install" class="copy" type="button" hidden>Install and restart</button>
+        </div>
+        <p class="muted">EcoPrompt never checks by itself. Clicking the button downloads one small file from GitHub; nothing about you is sent.</p>
+        <p id="upd-msg" class="msg" role="status" aria-live="polite"></p>
+      </div>
+      <div class="setting">
         <span class="label">Energy model (estimate)</span>
         <div class="shortcut-row">
           <label class="muted" for="p-idle">Idle W</label>

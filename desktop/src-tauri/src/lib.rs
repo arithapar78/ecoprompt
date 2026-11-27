@@ -446,9 +446,51 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 
-// TODO(updater): auto-update needs signing keys (tauri-plugin-updater + a
-// minisign keypair). When added, the endpoint is the latest GitHub release of
-// arithapar78/ecoprompt: .../releases/latest/download/latest.json
+// ── Updates (user-triggered only) ────────────────────────────────────────────
+// The app never checks for updates by itself. These run only when the user clicks
+// "Check for updates" in Settings. The only request is a GET of latest.json from the
+// GitHub release; no prompt text, usage data or identifiers are sent.
+
+#[derive(serde::Serialize)]
+struct UpdateInfo {
+    version: String,
+    notes: Option<String>,
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn check_update(app: tauri::AppHandle) -> Result<Option<UpdateInfo>, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await {
+        Ok(Some(u)) => {
+            log::info!("update available: {}", u.version);
+            Ok(Some(UpdateInfo { version: u.version.clone(), notes: u.body.clone() }))
+        }
+        Ok(None) => {
+            log::info!("no update available");
+            Ok(None)
+        }
+        Err(e) => {
+            log::warn!("update check failed: {e}");
+            Err(e.to_string())
+        }
+    }
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
+        return Err("No update available".into());
+    };
+    log::info!("installing update {}", update.version);
+    update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
+    app.restart();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
 
@@ -481,6 +523,7 @@ pub fn run() {
                 })
                 .build(),
         )
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             quick_optimize_result,
@@ -493,7 +536,9 @@ pub fn run() {
             get_diagnostics,
             set_debug_logging,
             set_energy_params,
-            export_history
+            export_history,
+            check_update,
+            install_update
         ])
         .on_window_event(|window, event| {
             // Closing the main window hides it; the app keeps running in the tray.

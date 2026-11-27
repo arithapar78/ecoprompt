@@ -31,4 +31,14 @@ Cost: about 100-400 USD/year for an OV/EV code-signing certificate (EV removes S
 
 ## Auto-update
 
-The updater needs its own signing key (`tauri signer generate`), separate from the OS certificates. See the `TODO(updater)` in `src-tauri/src/lib.rs`.
+Settings has a **Check for updates** button (never automatic). It reads `latest.json` from the latest GitHub release and verifies the download against the public key in `tauri.conf.json`.
+
+The key pair was generated with `tauri signer generate`. The private key lives at `~/.tauri/ecoprompt-updater.key` on the maintainer's Mac (no password). **Back it up. If it is lost, installed apps can never be updated again.** Never commit it.
+
+To enable update files in releases, add one repository secret:
+
+| Secret | Value |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | the full contents of `~/.tauri/ecoprompt-updater.key` (`cat ~/.tauri/ecoprompt-updater.key \| pbcopy`) |
+
+Without it releases still build; they just have no `latest.json`, and the button says it could not check. Versions before the first updater-enabled release (0.1.6) cannot update themselves; users install that one manually.

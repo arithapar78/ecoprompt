@@ -33,5 +33,13 @@
     "macOS": {
       "signingIdentity": "-"
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENGN0JGQkYxNzVGMjBGRDMKUldUVEQvSjE4ZnQ3ejdQcWlRZHgrUFJtUE44MlcrWGYrclUxV0tUb25oUVFkRVJ6WGZvSUNZdU8K",
+      "endpoints": [
+        "https://github.com/arithapar78/ecoprompt/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

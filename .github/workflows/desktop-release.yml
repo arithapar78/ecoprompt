@@ -136,13 +136,32 @@ jobs:
             echo "Apple secrets not set: building ad-hoc signed (users see the Gatekeeper warning)"
           fi
 
+      # In-app updates. Active only when the TAURI_SIGNING_PRIVATE_KEY secret exists
+      # (see desktop/docs/SIGNING.md). Adds the signed update files and latest.json.
+      - name: Enable updater artifacts (if the signing key secret is set)
+        shell: bash
+        env:
+          UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$UPDATER_KEY" ]; then
+            {
+              echo "TAURI_SIGNING_PRIVATE_KEY<<EOF_KEY"
+              echo "$UPDATER_KEY"
+              echo "EOF_KEY"
+              echo "UPDATER_ARGS=--config src-tauri/tauri.updater.conf.json"
+            } >> "$GITHUB_ENV"
+            echo "Updater artifacts enabled"
+          else
+            echo "TAURI_SIGNING_PRIVATE_KEY not set: no update files will be produced"
+          fi
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: desktop
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} ${{ env.UPDATER_ARGS }}
 
   checksums:
     needs: [create-release, build]
@@ -190,6 +209,6 @@ jobs:
             grep -Eq "$pat" assets.txt || { echo "missing asset matching: $pat"; exit 1; }
           done
           # Installers must be real files, not empty or truncated uploads.
-          awk '$1 !~ /^SHA256SUMS/ && $2 < 1000000 { print "too small: " $0; bad = 1 } END { exit bad }' assets.txt
+          awk '$1 !~ /^SHA256SUMS/ && $1 !~ /\.sig$/ && $1 != "latest.json" && $2 < 1000000 { print "too small: " $0; bad = 1 } END { exit bad }' assets.txt
           gh api -X PATCH "repos/$REPO/releases/$RID" -F draft=false -f make_latest=false
           echo "published release $RID"

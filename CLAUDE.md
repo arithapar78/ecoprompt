@@ -105,7 +105,7 @@ CI=true npm run tauri build -- --target universal-apple-darwin   # Mac .dmg (CI=
 **History and data.** `history.json` (ring of 2,880 entries `{ts, watts, site, apps}`, same shape as the extension plus `apps`) and `daily.json` (90 days, Wh per group, `{whTotal, bySite}`) live in the OS app data dir (Mac: `~/Library/Application Support/com.learntav.ecoprompt/`). Memory-buffered; flushed at most once a minute and on quit; atomic writes. Wh per sample is computed only by `energy_model::wh_for_sample`.
 
 **Rules that must not break**
-- No telemetry and no network calls from the desktop app.
+- No telemetry from the desktop app, and no automatic network calls. The only request is the user-clicked "Check for updates" (GET of `latest.json` from the GitHub release).
 - Never log prompt or clipboard text (lengths and counts only). `desktop/test/log-privacy.test.mjs` and `quick::tests` enforce it.
 - Quick optimize is clipboard-only: never simulate keystrokes (that needs Mac Accessibility permission).
 - Energy figures are estimates and must be labelled as such in the UI.
