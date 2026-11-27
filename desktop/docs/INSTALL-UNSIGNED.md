@@ -16,15 +16,13 @@ The long string must match the one in `SHA256SUMS.txt` for that file name.
 ## Mac
 
 1. Open the `.dmg` and drag **EcoPrompt** into **Applications**.
-2. Open **Applications**, **right-click** (or Control-click) **EcoPrompt**, and choose **Open**.
-3. A warning appears. Click **Open**.
-
-If macOS only offers **Done** / **Move to Trash** (newer macOS versions):
-
-1. Click **Done**.
-2. Open **System Settings → Privacy & Security**.
-3. Scroll down to the message about "EcoPrompt" being blocked and click **Open Anyway**.
+2. Open **EcoPrompt** from Applications. macOS says it "could not verify" the app and offers only **Done** and **Move to Trash**. Click **Done**. Do **not** move it to the Trash.
+3. Open **System Settings → Privacy & Security** and scroll down to the message about "EcoPrompt" being blocked. Click **Open Anyway**.
 4. Enter your password, then click **Open**.
+
+Prefer Terminal? Run `xattr -cr /Applications/EcoPrompt.app` once, then open the app normally.
+
+On macOS 14 and older, right-click (or Control-click) **EcoPrompt** and choose **Open** also works. On macOS 15 and newer, Apple removed that shortcut, so use steps 2-4.
 
 EcoPrompt lives in the menu bar (top right). Closing its window does not quit it, and a small note tells you so. **Can't see the icon?** A crowded menu bar can hide it behind the camera notch. Just open EcoPrompt again from Applications and its window comes back. To quit, use the menu bar icon.
 
